@@ -23,7 +23,7 @@ import dill
 #stub(globals())
 
 # log_dir = "./Data/FixMapStartState"
-log_dir = "./Data/FixMapStartState_gru"
+log_dir = "./Data/Text_gru"
 
 tabular_log_file = osp.join(log_dir, "progress.csv")
 text_log_file = osp.join(log_dir, "debug.log")
@@ -69,13 +69,14 @@ policy = CategoricalGRUPolicy(
 baseline = LinearFeatureBaseline(env_spec=env.spec)
 
 with tf.Session() as sess:
+    writer = tf.summary.FileWriter(logdir=log_dir,)
     algo = VPG(
         env=env,
         policy=policy,
         baseline=baseline,
-        batch_size=2048,
+        batch_size=2*env._wrapped_env.params['traj_limit'],#2048,
         max_path_length=env._wrapped_env.params['traj_limit'],
-        n_itr=10000,
+        n_itr=1,#10000,
         # n_itr=2,
         discount=0.95,
         step_size=0.01,
@@ -86,3 +87,5 @@ with tf.Session() as sess:
     )
 
     algo.train(sess)
+    writer.add_graph(sess.graph)
+    writer.close()

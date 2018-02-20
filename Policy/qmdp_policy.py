@@ -31,12 +31,13 @@ class QMDPPolicy(StochasticPolicy, LayersPowered, Serializable):
         :param hidden_nonlinearity: nonlinearity used for each hidden layer
         :return:
         """
-        self.qmdp_param = qmdp_param
 
         with tf.variable_scope(name):
             assert isinstance(env_spec.action_space, Discrete)
             Serializable.quick_init(self, locals())
             super(QMDPPolicy, self).__init__(env_spec)
+
+            self.qmdp_param = qmdp_param
 
             obs_dim = env_spec.observation_space.flat_dim
             action_dim = env_spec.action_space.flat_dim
@@ -100,6 +101,20 @@ class QMDPPolicy(StochasticPolicy, LayersPowered, Serializable):
                 ], {prob_network.step_input_layer: feature_var})
             )
 
+            # self.debug = tensor_utils.compile_function(
+            #     [
+            #         flat_input_var,
+            #         # prob_network.step_prev_hidden_layer.input_var
+            #         prob_network.step_prev_state_layer.input_var
+            #     ],
+            #     # [self.prob_network._l_output_flat.plannernet.printQ]
+            #     [
+            #         self.prob_network._l_output_flat.plannernet.f_pi.fclayers.fclayers[0].w,
+            #         self.prob_network._l_output_flat.plannernet.q,
+            #         self.prob_network._l_output_flat.plannernet.action_pred,
+            #     ]
+            # )
+
             self.input_dim = input_dim
             self.action_dim = action_dim
             self.hidden_dim = qmdp_param['grid_n']*qmdp_param['grid_m']
@@ -153,8 +168,10 @@ class QMDPPolicy(StochasticPolicy, LayersPowered, Serializable):
             self.prev_actions = np.zeros((len(dones), self.action_space.flat_dim))
             self.prev_hiddens = np.zeros((len(dones), self.hidden_dim))
 
-        self.prev_actions[dones] = self.qmdp_param['stayaction']
-        # self.prev_actions[dones] = 0.0
+        self.prev_actions[dones] = 0.0
+        self.prev_actions[:,self.qmdp_param['stayaction']] = 1.0
+        # print("initial prev actions: ",self.prev_actions)
+        # self.prev_actions[dones] = 0
 
         # self.prev_hiddens[dones] = self.prob_network.hid_init_param.eval()  # get_value()
         h0 = np.reshape(b0, (self.hidden_dim))
@@ -195,12 +212,21 @@ class QMDPPolicy(StochasticPolicy, LayersPowered, Serializable):
             ], axis=-1)
         else:
             all_input = flat_obs
+
         probs, hidden_vec = self.f_step_prob(all_input, self.prev_hiddens)
-        print("probs: ",probs)
-        print("hidden_vec: ",hidden_vec)
+        # print("probs: ",probs)
+        # w, q, action_pred = self.debug(all_input, self.prev_hiddens)
+        # print('w: ',w)
+        # print("q: ",q)
+        # sess = tf.get_default_session()
+        # print('q*w: ',sess.run(tf.matmul(q,w)))
+        # print("action_pred: ",action_pred)
+
         actions = special.weighted_sample_n(probs, np.arange(self.action_space.n))
+        #print("actions: ",actions)
         prev_actions = self.prev_actions
         self.prev_actions = self.action_space.flatten_n(actions)
+        #print("prve_actions: ",self.prev_actions)
         self.prev_hiddens = hidden_vec
         agent_info = dict(prob=probs)
         if self.state_include_action:

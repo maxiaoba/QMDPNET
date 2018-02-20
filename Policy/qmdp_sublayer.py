@@ -53,10 +53,12 @@ class PlannerNet(object):
         q = tf.multiply(Q, b_tiled)
         # sum over states
         q = tf.reduce_sum(q, [1, 2], keep_dims=False)
-
+        #self.printQ = tf.Print(q,[q],'q: ')
+        self.q = q
         # low-level policy, f_pi
         # action_pred = PlannerNet.f_pi(q, params.num_action, parent_layer=parent_layer)
         action_pred = self.f_pi.step(q)
+        self.action_pred = action_pred
         return action_pred
 
 
@@ -159,10 +161,12 @@ class F_O(object):
 
 class F_pi(object):
     def __init__(self, num_action_in, num_action_out, parent_layer=None):
-        self.fclayers = FcLayers(num_action_in, np.array([[num_action_out, 'smax']]), names="pi_fc", parent_layer=parent_layer)
+        # self.fclayers = FcLayers(num_action_in, np.array([[num_action_out, 'smax']]), names="pi_fc", parent_layer=parent_layer)
         # Xiaobai: change nonlinear to smax
+        pass
     def step(self, q):
-        return self.fclayers.step(q)
+        # return self.fclayers.step(q)
+        return tf.nn.softmax(q, dim=-1)
 
 
 # Helper function to construct layers conveniently

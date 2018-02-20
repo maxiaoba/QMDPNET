@@ -42,7 +42,7 @@ logger.push_prefix("[%s] " % "FixMapStartState")
 
 from Algo import parallel_sampler
 parallel_sampler.initialize(n_parallel=1)
-parallel_sampler.set_seed(0)
+parallel_sampler.set_seed(1)
 
 
 # env = TfEnv(GridBase())
@@ -55,36 +55,44 @@ parallel_sampler.set_seed(0)
 # params = dict(
 #     env=env,
 # )
-# joblib.dump(params,'./env.pkl')
+# joblib.dump(params,log_dir+'/env.pkl')
 
 params = joblib.load('./env.pkl')
 env = params['env']
 
-policy = QMDPPolicy(
-    env_spec=env.spec,
-    name="QMDP",
-    qmdp_param=env._wrapped_env.params
-    # N=env._wrapped_env.params.grid_n,
-    # M=env._wrapped_env.params.grid_m,
-    # Pmove_succ=env._wrapped_env.params.Pmove_succ,
-    # Pobs_succ=env._wrapped_env.params.Pobs_succ,
-)
+# policy = QMDPPolicy(
+#     env_spec=env.spec,
+#     name="QMDP",
+#     qmdp_param=env._wrapped_env.params
+#     # N=env._wrapped_env.params.grid_n,
+#     # M=env._wrapped_env.params.grid_m,
+#     # Pmove_succ=env._wrapped_env.params.Pmove_succ,
+#     # Pobs_succ=env._wrapped_env.params.Pobs_succ,
+# )
 
 
 baseline = LinearFeatureBaseline(env_spec=env.spec)
 
 with tf.Session() as sess:
+    policy = QMDPPolicy(
+        env_spec=env.spec,
+        name="QMDP",
+        qmdp_param=env._wrapped_env.params
+        # N=env._wrapped_env.params.grid_n,
+        # M=env._wrapped_env.params.grid_m,
+        # Pmove_succ=env._wrapped_env.params.Pmove_succ,
+        # Pobs_succ=env._wrapped_env.params.Pobs_succ,
+    )
 
-    # writer = tf.summary.FileWriter(logdir=log_dir,)
+    writer = tf.summary.FileWriter(logdir=log_dir,)
 
     algo = VPG_t(
         env=env,
         policy=policy,
         baseline=baseline,
-        batch_size=2*env._wrapped_env.params['traj_limit'],
+        batch_size=2048,#2*env._wrapped_env.params['traj_limit'],
         max_path_length=env._wrapped_env.params['traj_limit'],
-        n_itr=10,
-        # n_itr=2,
+        n_itr=10000,
         discount=0.95,
         step_size=0.01,
         record_rewards=True,
@@ -113,6 +121,6 @@ with tf.Session() as sess:
     # )
 
     algo.train(sess)
-
-    # writer.add_graph(sess.graph)
-    # writer.close()
+    print(sess.graph)
+    writer.add_graph(sess.graph)
+    writer.close()
