@@ -23,7 +23,7 @@ import dill
 #stub(globals())
 
 # log_dir = "./Data/FixMapStartState"
-log_dir = "./Data/Test"
+log_dir = "./Data/Test2"
 
 tabular_log_file = osp.join(log_dir, "progress.csv")
 text_log_file = osp.join(log_dir, "debug.log")
@@ -42,49 +42,36 @@ logger.push_prefix("[%s] " % "FixMapStartState")
 
 from Algo import parallel_sampler
 parallel_sampler.initialize(n_parallel=1)
-parallel_sampler.set_seed(1)
+parallel_sampler.set_seed(0)
 
 
-# env = TfEnv(GridBase())
-# env._wrapped_env.generate_grid=True
-# env._wrapped_env.generate_b0_start_goal=True
-# env.reset()
-# env._wrapped_env.generate_grid=False
-# env._wrapped_env.generate_b0_start_goal=False
+env = TfEnv(GridBase())
+env._wrapped_env.generate_grid=True
+env._wrapped_env.generate_b0_start_goal=True
+env.reset()
+env._wrapped_env.generate_grid=False
+env._wrapped_env.generate_b0_start_goal=False
 
-# params = dict(
-#     env=env,
-# )
-# joblib.dump(params,log_dir+'/env.pkl')
+params = dict(
+    env=env,
+)
+joblib.dump(params,log_dir+'/env.pkl')
 
-params = joblib.load('./env.pkl')
-env = params['env']
+# params = joblib.load('./env.pkl')
+# env = params['env']
 
-# policy = QMDPPolicy(
-#     env_spec=env.spec,
-#     name="QMDP",
-#     qmdp_param=env._wrapped_env.params
-#     # N=env._wrapped_env.params.grid_n,
-#     # M=env._wrapped_env.params.grid_m,
-#     # Pmove_succ=env._wrapped_env.params.Pmove_succ,
-#     # Pobs_succ=env._wrapped_env.params.Pobs_succ,
-# )
+policy = QMDPPolicy(
+    env_spec=env.spec,
+    name="QMDP",
+    qmdp_param=env._wrapped_env.params
+)
 
 
 baseline = LinearFeatureBaseline(env_spec=env.spec)
 
 with tf.Session() as sess:
-    policy = QMDPPolicy(
-        env_spec=env.spec,
-        name="QMDP",
-        qmdp_param=env._wrapped_env.params
-        # N=env._wrapped_env.params.grid_n,
-        # M=env._wrapped_env.params.grid_m,
-        # Pmove_succ=env._wrapped_env.params.Pmove_succ,
-        # Pobs_succ=env._wrapped_env.params.Pobs_succ,
-    )
 
-    writer = tf.summary.FileWriter(logdir=log_dir,)
+    # writer = tf.summary.FileWriter(logdir=log_dir,)
 
     algo = VPG_t(
         env=env,
@@ -102,25 +89,24 @@ with tf.Session() as sess:
         # Uncomment both lines (this and the plot parameter below) to enable plotting
         # plot=True,
     )
-
-    # algo = VPG_t(
+    # algo = VPG(
     #     env=env,
     #     policy=policy,
     #     baseline=baseline,
-    #     batch_size=2048,
-    #     max_path_length=400,
-    #     # n_itr=5000,
-    #     n_itr=5000,
+    #     batch_size=2048,#2*env._wrapped_env.params['traj_limit'],
+    #     max_path_length=env._wrapped_env.params['traj_limit'],
+    #     n_itr=50,#1,
+    #     # n_itr=2,
     #     discount=0.95,
     #     step_size=0.01,
-    #     record_rewards=True,
-    #     transfer=False,
     #     # optimizer=ConjugateGradientOptimizer(hvp_approach=FiniteDifferenceHvp(base_eps=1e-5))
+    #     # optimizer = PenaltyLbfgsOptimizer()
     #     # Uncomment both lines (this and the plot parameter below) to enable plotting
     #     # plot=True,
     # )
 
     algo.train(sess)
-    print(sess.graph)
-    writer.add_graph(sess.graph)
-    writer.close()
+    # tf.summary.merge_all()
+    # print(sess.graph)
+    # writer.add_graph(sess.graph)
+    # writer.close()

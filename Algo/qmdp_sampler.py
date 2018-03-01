@@ -27,6 +27,7 @@ class QMDPSampler(BaseSampler):
     def obtain_samples(self, itr):
         cur_policy_params = self.algo.policy.get_param_values()
         cur_env_params = self.algo.env.get_param_values()
+        # print(self.algo.env._wrapped_env.env_img)
         paths = parallel_sampler.sample_paths(
             policy_params=cur_policy_params,
             env_params=cur_env_params,

@@ -13,6 +13,7 @@ from sandbox.rocky.tf.optimizers.first_order_optimizer import FirstOrderOptimize
 from sandbox.rocky.tf.misc import tensor_utils
 from rllab.core.serializable import Serializable
 import tensorflow as tf
+import joblib
 
 
 class VPG_t(BatchPolopt, Serializable):
@@ -25,6 +26,9 @@ class VPG_t(BatchPolopt, Serializable):
             env,
             policy,
             baseline,
+            env_path,
+            env_num,
+            env_keep_itr,
             optimizer=None,
             optimizer_args=None,
             transfer=True,
@@ -57,6 +61,9 @@ class VPG_t(BatchPolopt, Serializable):
                 self.rewards['MinReturn'] = []
             else:
                 self.rewards = rewards
+        self.env_path = env_path
+        self.env_num = env_num
+        self.env_keep_itr = env_keep_itr
         super(VPG_t, self).__init__(env=env, policy=policy, baseline=baseline, sampler_cls=QMDPSampler,sampler_args=dict(), **kwargs)
 
     @overrides
@@ -163,12 +170,11 @@ class VPG_t(BatchPolopt, Serializable):
         for itr in range(self.start_itr, self.n_itr):
             itr_start_time = time.time()
             with logger.prefix('itr #%d | ' % itr):
-                logger.log("Obtaining samples...")
-                # self.env._wrapped_env.generate_grid=True
-                # self.env._wrapped_env.generate_b0_start_goal=True
-                # self.env.reset()
-                # self.env._wrapped_env.generate_grid=False
-                # self.env._wrapped_env.generate_b0_start_goal=False
+                if itr % self.env_keep_itr == 0:
+                    env_num = np.random.randint(self.env_num)
+                    params = joblib.load(self.env_path+'/env_'+str(env_num)+'.pkl')
+                    self.env = params['env']
+                logger.log("Obtaining samples at env %d" % env_num)
                 paths = self.obtain_samples(itr)
                 logger.log("Processing samples...")
                 samples_data = self.process_samples(itr, paths)
@@ -186,14 +192,6 @@ class VPG_t(BatchPolopt, Serializable):
                     self.rewards['StdReturn'].append(StdReturn)
                     self.rewards['MaxReturn'].append(MaxReturn)
                     self.rewards['MinReturn'].append(MinReturn)
-                    # print("AverageReturn: ",AverageReturn)
-                    # print("MaxReturn: ",MaxReturn)
-                    # print("MinReturn: ",MinReturn)
-                # print(sess.run(self.policy.prob_network._l_gru.h0))
-                # print(sess.run(self.policy.prob_network._l_gru.map))
-                # self.prob_network._l_gru.h0.load(h0, sess)
-                # self.prob_network._l_gru.map.load(map, sess)
-                # self.prob_network._l_gru.goal.load(goal, sess)
 
                 logger.log("Logging diagnostics...")
                 self.log_diagnostics(paths)

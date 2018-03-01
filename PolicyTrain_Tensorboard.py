@@ -23,7 +23,7 @@ import dill
 #stub(globals())
 
 # log_dir = "./Data/FixMapStartState"
-log_dir = "./Data/Test2_gru"
+log_dir = "./Data/TensorBoard"
 
 tabular_log_file = osp.join(log_dir, "progress.csv")
 text_log_file = osp.join(log_dir, "debug.log")
@@ -42,7 +42,7 @@ logger.push_prefix("[%s] " % "FixMapStartState")
 
 from Algo import parallel_sampler
 parallel_sampler.initialize(n_parallel=1)
-parallel_sampler.set_seed(1)
+parallel_sampler.set_seed(0)
 
 
 # env = TfEnv(GridBase())
@@ -56,29 +56,30 @@ parallel_sampler.set_seed(1)
 #     env=env,
 # )
 # joblib.dump(params,log_dir+'/env.pkl')
-# joblib.dump(params,'./env.pkl')
 
 params = joblib.load('./env.pkl')
 env = params['env']
 
-policy = CategoricalGRUPolicy(
+policy = QMDPPolicy(
     env_spec=env.spec,
-    name="gru",
+    name="QMDP",
+    qmdp_param=env._wrapped_env.params
 )
 
 
 baseline = LinearFeatureBaseline(env_spec=env.spec)
 
 with tf.Session() as sess:
+
     writer = tf.summary.FileWriter(logdir=log_dir,)
 
     algo = VPG_t(
         env=env,
         policy=policy,
         baseline=baseline,
-        batch_size=2048,#2*env._wrapped_env.params['traj_limit'],
+        batch_size=2*env._wrapped_env.params['traj_limit'],
         max_path_length=env._wrapped_env.params['traj_limit'],
-        n_itr=10000,
+        n_itr=1,
         discount=0.95,
         step_size=0.01,
         record_rewards=True,
@@ -88,22 +89,9 @@ with tf.Session() as sess:
         # Uncomment both lines (this and the plot parameter below) to enable plotting
         # plot=True,
     )
-    # algo = VPG(
-    #     env=env,
-    #     policy=policy,
-    #     baseline=baseline,
-    #     batch_size=2048,#2*env._wrapped_env.params['traj_limit'],
-    #     max_path_length=env._wrapped_env.params['traj_limit'],
-    #     n_itr=50,
-    #     # n_itr=2,
-    #     discount=0.95,
-    #     step_size=0.01,
-    #     # optimizer=ConjugateGradientOptimizer(hvp_approach=FiniteDifferenceHvp(base_eps=1e-5))
-    #     # optimizer = PenaltyLbfgsOptimizer()
-    #     # Uncomment both lines (this and the plot parameter below) to enable plotting
-    #     # plot=True,
-    # )
 
     algo.train(sess)
+    # tf.summary.merge_all()
+    # print(sess.graph)
     writer.add_graph(sess.graph)
     writer.close()

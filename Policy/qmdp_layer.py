@@ -29,9 +29,9 @@ class FilterLayer(Layer):
         self.num_units = self.N*self.M
         # pre-run the step method to initialize the normalization parameters
         # self.build_placeholders()
-        self.map = self.add_param(tf.constant_initializer(0.0), (self.N, self.M), name="map", trainable=False, regularizable=False)
-        self.goal = self.add_param(tf.constant_initializer(0.0), (self.N, self.M), name="goal", trainable=False, regularizable=False)                    
-        self.h0 = self.add_param(tf.constant_initializer(0.0), (self.num_units,), name="h0", trainable=False, regularizable=False)
+        self.map = self.add_param(tf.constant_initializer(1.0), (self.N, self.M), name="map", trainable=False, regularizable=False)
+        self.goal = self.add_param(tf.constant_initializer(1.0), (self.N, self.M), name="goal", trainable=False, regularizable=False)                    
+        self.h0 = self.add_param(tf.constant_initializer(1.0), (self.num_units,), name="h0", trainable=False, regularizable=False)
         self.filternet = FilterNet(qmdp_param, parent_layer=self)
         h_dummy = tf.placeholder(dtype=tf.float32, shape=(None, self.num_units), name="h_dummy")
         x_dummy = tf.placeholder(dtype=tf.float32, shape=(None, input_dim), name="x_dummy")
@@ -58,17 +58,19 @@ class FilterLayer(Layer):
         act_in = tf.to_int32(act_in)
         obs_in = tf.to_float(obs_in)
 
-        with tf.variable_scope("filter"):
+        # with tf.variable_scope("filter"):
             # Z = FilterNet.f_Z(map, self.qmdp_param, parent_layer=self)
-            Z = self.filternet.f_Z.step(map)
+            # Z = self.filternet.f_Z.step(map)
+        Z = self.filternet.f_Z.step(map)
 
         # create variable for hidden belief (equivalent to the hidden state of an RNN)
         # self.belief = tf.Variable(np.zeros(prev_b.get_shape().as_list(), 'f'), trainable=False, name="hidden_belief")
 
         # filter
-        with tf.variable_scope("filter") as step_scope:
+        # with tf.variable_scope("filter") as step_scope:
             # self.b = FilterNet.beliefupdate(Z, prev_b, act_in, obs_in, self.qmdp_param, parent_layer=self)
-            b = self.filternet.beliefupdate(Z, prev_b, act_in, obs_in)
+            # b = self.filternet.beliefupdate(Z, prev_b, act_in, obs_in)
+        b = self.filternet.beliefupdate(Z, prev_b, act_in, obs_in)
 
         h = tf.reshape(b,tf.stack([-1,self.num_units]))
         return h
@@ -146,9 +148,9 @@ class PlannerLayer(Layer):
         self.num_action = qmdp_param['num_action']
         # pre-run the step method to initialize the normalization parameters
         # self.build_placeholders()
-        self.map = self.add_param(tf.constant_initializer(0.0), (self.N, self.M), name="map", trainable=False, regularizable=False)
-        self.goal = self.add_param(tf.constant_initializer(0.0), (self.N, self.M), name="goal", trainable=False, regularizable=False)                    
-        self.h0 = self.add_param(tf.constant_initializer(0.0), (self.num_units,), name="h0", trainable=False, regularizable=False)
+        self.map = self.add_param(tf.constant_initializer(1.0), (self.N, self.M), name="map", trainable=False, regularizable=False)
+        self.goal = self.add_param(tf.constant_initializer(1.0), (self.N, self.M), name="goal", trainable=False, regularizable=False)                    
+        self.h0 = self.add_param(tf.constant_initializer(1.0), (self.num_units,), name="h0", trainable=False, regularizable=False)
         self.plannernet = PlannerNet(qmdp_param, parent_layer=self)
         h_dummy = tf.placeholder(dtype=tf.float32, shape=(None, self.num_units), name="h_dummy")
         self.step(h_dummy)
@@ -172,12 +174,15 @@ class PlannerLayer(Layer):
         map = tf.to_float(map)
         goal = tf.to_float(goal)
 
-        with tf.variable_scope("planner"):
+        # with tf.variable_scope("planner"):
             # Q, _, _ = PlannerNet.VI(map, goal, self.qmdp_param, parent_layer=self)
-            Q, _, _ = self.plannernet.VI(map, goal)
-        with tf.variable_scope("planner") as step_scope:
+            # Q, _, _ = self.plannernet.VI(map, goal)
+        Q, _, _ = self.plannernet.VI(map, goal)
+
+        # with tf.variable_scope("planner") as step_scope:
             # action_pred = PlannerNet.policy(Q, b, self.qmdp_param, parent_layer=self)
-            action_pred = self.plannernet.policy(Q, b)
+            # action_pred = self.plannernet.policy(Q, b)
+        action_pred = self.plannernet.policy(Q, b)
 
         return action_pred
 

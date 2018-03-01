@@ -11,11 +11,16 @@ def rollout(env, agent, max_path_length=np.inf, animated=False, speedup=1,
     agent_infos = []
     env_infos = []
 
-    assert(env._wrapped_env.generate_grid==False)
-    assert(env._wrapped_env.generate_b0_start_goal==False)
+    if hasattr(env._wrapped_env,'generate_grid'):
+        env._wrapped_env.generate_grid=False
+    if hasattr(env._wrapped_env,'generate_b0_start_goal'):
+        env._wrapped_env.generate_b0_start_goal=False
+    # print(env._wrapped_env.env_img)
     o = env.reset()
-    agent.reset(env._wrapped_env.env_img, env._wrapped_env.goal_img, env._wrapped_env.b0_img)
-    # agent.reset()
+    if hasattr(agent, 'qmdp_param'):
+        agent.reset(env._wrapped_env.env_img, env._wrapped_env.goal_img, env._wrapped_env.b0_img)
+    else:
+        agent.reset()
     path_length = 0
     if animated:
         env.render()

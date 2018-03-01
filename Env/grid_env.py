@@ -20,6 +20,7 @@ from rllab.core.serializable import Serializable
 
 from matplotlib import pyplot
 import matplotlib as mpl
+from rllab.misc.overrides import overrides
 
 FREESTATE = 0.0
 OBSTACLE = 1.0
@@ -38,8 +39,8 @@ class GridBase(Env):
             'K': 30,
             'Pobst': 0.25,  # probability of obstacles in random grid
 
-            'R_obst': 0, 'R_goal': 20, 'R_step': 0.0,#'R_step': -0.1, 'R_obst': -10
-            'R_stay': -1,
+            'R_obst': -2, 'R_goal': 20, 'R_step': -1,#0.0,#'R_step': -0.1, 'R_obst': -10
+            'R_stay': -2,
             'discount': 0.99,
             'Pmove_succ':Pmove_succ,
             'Pobs_succ': Pobs_succ,
@@ -77,7 +78,7 @@ class GridBase(Env):
         self.generate_b0_start_goal = generate_b0_start_goal
 
         self.act = params['stayaction']
-        self.fig = None
+        # self.fig = None
     def render(self):
         # pass
         pyplot.clf()
@@ -101,9 +102,8 @@ class GridBase(Env):
 
         # tell imshow about color map so that only set colors are used
         # pyplot.ion()
-        if self.fig is None:
-            self.fig = pyplot.figure(1)
-        ax = self.fig.add_subplot(111)
+        fig = pyplot.figure(1)
+        ax = fig.add_subplot(111)
         img = ax.imshow(show_img,interpolation='nearest',
                             cmap = cmap,norm=norm)
 
@@ -178,6 +178,15 @@ class GridBase(Env):
         if self.step_count > self.params['traj_limit'] or self.goal_img[current_coord[0]][current_coord[1]]==1:
             done = True
         return Step(observation=obs, reward=r, done=done)
+
+    @overrides
+    def get_param_values(self):
+        return vars(self)
+
+    @overrides
+    def set_param_values(self, params):
+        for k, v in params.items():
+            setattr(self, k, v)
 
     def gen_pomdp(self):
         # construct all POMDP model(R, T, Z)

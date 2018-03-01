@@ -22,47 +22,47 @@ import matplotlib as mpl
 
 #stub(globals())
 
-# log_dir = "./Data/FixMapStartState"
-# params = joblib.load(log_dir+'/env.pkl')
-# env = params['env']
+# log_dir = "./Data/Test2"
+params = joblib.load('./env.pkl')
+env = params['env']
 
-env = TfEnv(GridBase())
+# env = TfEnv(GridBase())
 
-env._wrapped_env.generate_grid=True
-env._wrapped_env.generate_b0_start_goal=True
-env.reset()
-env._wrapped_env.generate_grid=False
-env._wrapped_env.generate_b0_start_goal=False
-
+# env._wrapped_env.generate_grid=True
+# env._wrapped_env.generate_b0_start_goal=True
+# env.reset()
+# env._wrapped_env.generate_grid=False
+# env._wrapped_env.generate_b0_start_goal=False
+# print(env.reset())
 env_img = env._wrapped_env.env_img
 goal_img = env._wrapped_env.goal_img
 b0_img = env._wrapped_env.b0_img
 start_state = env._wrapped_env.start_state
-print(b0_img)
-print(env_img)
-print(env.step(4))
-print(env.step(3))
-print(env.step(2))
-print(env.step(1))
-print(env.step(0))
+state = env._wrapped_env.state
+
 show_img = np.copy(env_img)
-start_coord = env._wrapped_env.state_lin_to_bin(start_state)
+start_coord = env._wrapped_env.state_lin_to_bin(env._wrapped_env.start_state)
 show_img[start_coord[0]][start_coord[1]] = 2
 
 show_img = show_img + 3 * goal_img
 
-show_img = show_img + 4 * (b0_img>0) + b0_img
+current_coord = env._wrapped_env.state_lin_to_bin(state)
+show_img[current_coord[0]][current_coord[1]] = 4
 # make a color map of fixed colors
-cmap = mpl.colors.ListedColormap(['white','black','red','blue','white','yellow','orange','purple','red'])
-bounds=[0,1,2,3,4,4.001,4.3,4.7,5]
+cmap = mpl.colors.ListedColormap(['white','black','red','blue','yellow'])
+bounds=[-0.5,0.5,1.5,2.5,3.5,4.5]
 norm = mpl.colors.BoundaryNorm(bounds, cmap.N)
-
+fig = pyplot.figure(1)
 # tell imshow about color map so that only set colors are used
 img = pyplot.imshow(show_img,interpolation='nearest',
                     cmap = cmap,norm=norm)
 
 # make a color bar
-pyplot.colorbar(img,cmap=cmap,
-                norm=norm,boundaries=bounds,ticks=[0,1,2,3,4,4.001,4.3,4.7,5])
+# pyplot.colorbar(img,cmap=cmap,
+                # norm=norm,boundaries=bounds,ticks=[0,1,2,3,4])
 
 pyplot.show()
+# fig.savefig('Map.pdf')
+# pyplot.close(fig)
+
+

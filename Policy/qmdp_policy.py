@@ -101,19 +101,19 @@ class QMDPPolicy(StochasticPolicy, LayersPowered, Serializable):
                 ], {prob_network.step_input_layer: feature_var})
             )
 
-            # self.debug = tensor_utils.compile_function(
-            #     [
-            #         flat_input_var,
-            #         # prob_network.step_prev_hidden_layer.input_var
-            #         prob_network.step_prev_state_layer.input_var
-            #     ],
-            #     # [self.prob_network._l_output_flat.plannernet.printQ]
-            #     [
-            #         self.prob_network._l_output_flat.plannernet.f_pi.fclayers.fclayers[0].w,
-            #         self.prob_network._l_output_flat.plannernet.q,
-            #         self.prob_network._l_output_flat.plannernet.action_pred,
-            #     ]
-            # )
+            self.debug = tensor_utils.compile_function(
+                [
+                    flat_input_var,
+                    # prob_network.step_prev_hidden_layer.input_var
+                    prob_network.step_prev_state_layer.input_var
+                ],
+                # [self.prob_network._l_output_flat.plannernet.printQ]
+                [
+                    # self.prob_network._l_output_flat.plannernet.f_pi.fclayers.fclayers[0].w,
+                    self.prob_network._l_output_flat.plannernet.q,
+                    self.prob_network._l_output_flat.plannernet.action_pred,
+                ]
+            )
 
             self.input_dim = input_dim
             self.action_dim = action_dim
@@ -184,6 +184,7 @@ class QMDPPolicy(StochasticPolicy, LayersPowered, Serializable):
         # sess.run(tf.assign(self.prob_network._l_output_flat.h0,h0))
         # sess.run(tf.assign(self.prob_network._l_output_flat.map,map))
         # sess.run(tf.assign(self.prob_network._l_output_flat.goal,goal))
+
         self.prob_network._l_gru.h0.load(h0, sess)
         self.prob_network._l_gru.map.load(map, sess)
         self.prob_network._l_gru.goal.load(goal, sess)
@@ -215,7 +216,7 @@ class QMDPPolicy(StochasticPolicy, LayersPowered, Serializable):
 
         probs, hidden_vec = self.f_step_prob(all_input, self.prev_hiddens)
         # print("probs: ",probs)
-        # w, q, action_pred = self.debug(all_input, self.prev_hiddens)
+        # q, action_pred = self.debug(all_input, self.prev_hiddens)
         # print('w: ',w)
         # print("q: ",q)
         # sess = tf.get_default_session()
