@@ -15,7 +15,6 @@ import os.path as osp
 import tensorflow as tf
 from sandbox.rocky.tf.samplers.batch_sampler import BatchSampler
 import joblib
-import dill
 import numpy as np
 from matplotlib import pyplot
 import matplotlib as mpl

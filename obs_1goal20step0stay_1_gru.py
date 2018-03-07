@@ -20,10 +20,47 @@ import tensorflow as tf
 from sandbox.rocky.tf.samplers.batch_sampler import BatchSampler
 import joblib
 import dill
-#stub(globals())
+N=10
+M=10
+Pmove_succ=1.0
+Pobs_succ=1.0
 
-# log_dir = "./Data/FixMapStartState"
-log_dir = "./Data/Test2"
+params = {
+    'grid_n': N,
+    'grid_m': M,
+    'K': 30,
+    'Pobst': 0.25,  # probability of obstacles in random grid
+
+    'R_obst': -1.0, 'R_goal': 20.0, 'R_step': 0.0,#0.0,#'R_step': -0.1, 'R_obst': -10
+    'R_stay': -1.0,
+    'discount': 0.99,
+    'Pmove_succ':Pmove_succ,
+    'Pobs_succ': Pobs_succ,
+
+    'num_action': 5,
+    'moves': [[0, 1], [1, 0], [0, -1], [-1, 0], [0, 0]],  # right, down, left, up, stay
+    'stayaction': 4,
+
+    'num_obs': 16,
+    'observe_directions': [[0, 1], [1, 0], [0, -1], [-1, 0]],
+    }
+
+params['obs_len'] = len(params['observe_directions'])
+params['num_state'] = params['grid_n']*params['grid_m']
+params['traj_limit'] = 4 * (params['grid_n'] * params['grid_m']) # 4 * (params['grid_n'] + params['grid_m'])
+params['R_step'] = [params['R_step']] * params['num_action']
+params['R_step'][params['stayaction']] = params['R_stay']
+
+env_ref = joblib.load('./env.pkl')['env']
+grid = env_ref._wrapped_env.grid
+b0 = env_ref._wrapped_env.b0
+start_state = env_ref._wrapped_env.start_state
+goal_state = env_ref._wrapped_env.goal_state
+env = TfEnv(GridBase(params,grid=grid,b0=b0,start_state=start_state,goal_state=goal_state))
+env._wrapped_env.generate_grid=False
+env._wrapped_e
+
+log_dir = "./Data/obs_1goal20step0stay_1_gru"
 
 tabular_log_file = osp.join(log_dir, "progress.csv")
 text_log_file = osp.join(log_dir, "debug.log")
@@ -44,34 +81,16 @@ from Algo import parallel_sampler
 parallel_sampler.initialize(n_parallel=1)
 parallel_sampler.set_seed(0)
 
-
-env = TfEnv(GridBase())
-env._wrapped_env.generate_grid=True
-env._wrapped_env.generate_b0_start_goal=True
-env.reset()
-env._wrapped_env.generate_grid=False
-env._wrapped_env.generate_b0_start_goal=False
-
-params = dict(
-    env=env,
-)
-joblib.dump(params,log_dir+'/env.pkl')
-
-# params = joblib.load('./env.pkl')
-# env = params['env']
-
-policy = QMDPPolicy(
+policy = CategoricalGRUPolicy(
     env_spec=env.spec,
-    name="QMDP",
-    qmdp_param=env._wrapped_env.params
+    name="gru",
 )
 
 
 baseline = LinearFeatureBaseline(env_spec=env.spec)
 
 with tf.Session() as sess:
-
-    # writer = tf.summary.FileWriter(logdir=log_dir,)
+    writer = tf.summary.FileWriter(logdir=log_dir,)
 
     algo = VPG_t(
         env=env,
@@ -84,29 +103,7 @@ with tf.Session() as sess:
         step_size=0.01,
         record_rewards=True,
         transfer=False,
-        # optimizer=ConjugateGradientOptimizer(hvp_approach=FiniteDifferenceHvp(base_eps=1e-5))
-        # optimizer = PenaltyLbfgsOptimizer()
-        # Uncomment both lines (this and the plot parameter below) to enable plotting
-        # plot=True,
     )
-    # algo = VPG(
-    #     env=env,
-    #     policy=policy,
-    #     baseline=baseline,
-    #     batch_size=2048,#2*env._wrapped_env.params['traj_limit'],
-    #     max_path_length=env._wrapped_env.params['traj_limit'],
-    #     n_itr=50,#1,
-    #     # n_itr=2,
-    #     discount=0.95,
-    #     step_size=0.01,
-    #     # optimizer=ConjugateGradientOptimizer(hvp_approach=FiniteDifferenceHvp(base_eps=1e-5))
-    #     # optimizer = PenaltyLbfgsOptimizer()
-    #     # Uncomment both lines (this and the plot parameter below) to enable plotting
-    #     # plot=True,
-    # )
-
     algo.train(sess)
-    # tf.summary.merge_all()
-    # print(sess.graph)
-    # writer.add_graph(sess.graph)
-    # writer.close()
+    writer.add_graph(sess.graph)
+    writer.close()

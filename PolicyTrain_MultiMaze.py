@@ -18,34 +18,48 @@ import tensorflow as tf
 from sandbox.rocky.tf.samplers.batch_sampler import BatchSampler
 import joblib
 
-log_dir = "./Data/MultiMaze"
+N=10
+M=10
+Pmove_succ=1.0
+Pobs_succ=1.0
 
-# generate TrainENV file
-TrainEnvNum = 500
-env = TfEnv(GridBase())
-env._wrapped_env.generate_grid=True
-env._wrapped_env.generate_b0_start_goal=True
+params = {
+    'grid_n': N,
+    'grid_m': M,
+    'K': 30,
+    'Pobst': 0.25,  # probability of obstacles in random grid
 
-for i in range(TrainEnvNum):
-    env.reset()
-    params = dict(
-        env=env,
-    )
-    joblib.dump(params,log_dir+'/TrainEnv'+'/env_'+str(i)+'.pkl')
+    'R_obst': -1.0, 'R_goal': 20.0, 'R_step': 0.0,#0.0,#'R_step': -0.1, 'R_obst': -10
+    'R_stay': -1.0,
+    'discount': 0.99,
+    'Pmove_succ':Pmove_succ,
+    'Pobs_succ': Pobs_succ,
 
-# generate TestENV file
-# TestEnvNum = 10
-# env = TfEnv(GridBase())
-# env._wrapped_env.generate_grid=True
-# env._wrapped_env.generate_b0_start_goal=True
+    'num_action': 5,
+    'moves': [[0, 1], [1, 0], [0, -1], [-1, 0], [0, 0]],  # right, down, left, up, stay
+    'stayaction': 4,
 
-# for i in range(TestEnvNum):
-#     env.reset()
-#     params = dict(
-#         env=env,
-#     )
-#     joblib.dump(params,log_dir+'/TestEnv'+'/env_'+str(i)+'.pkl')
+    'num_obs': 16,
+    'observe_directions': [[0, 1], [1, 0], [0, -1], [-1, 0]],
+    }
 
+params['obs_len'] = len(params['observe_directions'])
+params['num_state'] = params['grid_n']*params['grid_m']
+params['traj_limit'] = 4 * (params['grid_n'] * params['grid_m']) # 4 * (params['grid_n'] + params['grid_m'])
+params['R_step'] = [params['R_step']] * params['num_action']
+params['R_step'][params['stayaction']] = params['R_stay']
+
+env_ref = joblib.load('./env.pkl')['env']
+grid = env_ref._wrapped_env.grid
+b0 = env_ref._wrapped_env.b0
+start_state = env_ref._wrapped_env.start_state
+goal_state = env_ref._wrapped_env.goal_state
+env = TfEnv(GridBase(params,grid=grid,b0=b0,start_state=start_state,goal_state=goal_state))
+env._wrapped_env.generate_grid=False
+env._wrapped_env.generate_b0_start_goal=False
+env.reset()
+
+log_dir = "./Data/obs_1goal20step0stay_1_gru"
 
 tabular_log_file = osp.join(log_dir, "progress.csv")
 text_log_file = osp.join(log_dir, "debug.log")
@@ -65,9 +79,6 @@ logger.push_prefix("[%s] " % "FixMapStartState")
 from Algo import parallel_sampler
 parallel_sampler.initialize(n_parallel=1)
 parallel_sampler.set_seed(0)
-
-params = joblib.load('./env.pkl')
-env = params['env']
 
 policy = QMDPPolicy(
     env_spec=env.spec,

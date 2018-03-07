@@ -27,38 +27,12 @@ OBSTACLE = 1.0
 
 
 class GridBase(Env):
-    def __init__(self, N=10, M=10, Pmove_succ=1.0, Pobs_succ=1.0, generate_grid=True, generate_b0_start_goal=True):
+    def __init__(self, params, grid=None, b0=None, start_state=None, goal_state=None):
         """
         Initialize domain simulator
         :param params: domain descriptor dotdict
         :param db: pytable database file
         """
-        params = {
-            'grid_n': N,
-            'grid_m': M,
-            'K': 30,
-            'Pobst': 0.25,  # probability of obstacles in random grid
-
-            'R_obst': -2, 'R_goal': 20, 'R_step': -1,#0.0,#'R_step': -0.1, 'R_obst': -10
-            'R_stay': -2,
-            'discount': 0.99,
-            'Pmove_succ':Pmove_succ,
-            'Pobs_succ': Pobs_succ,
-
-            'num_action': 5,
-            'moves': [[0, 1], [1, 0], [0, -1], [-1, 0], [0, 0]],  # right, down, left, up, stay
-            'stayaction': 4,
-
-            'num_obs': 16,
-            'observe_directions': [[0, 1], [1, 0], [0, -1], [-1, 0]],
-            }
-
-        params['obs_len'] = len(params['observe_directions'])
-        params['num_state'] = params['grid_n']*params['grid_m']
-        params['traj_limit'] = 4 * (params['grid_n'] * params['grid_m']) # 4 * (params['grid_n'] + params['grid_m'])
-        params['R_step'] = [params['R_step']] * params['num_action']
-        params['R_step'][params['stayaction']] = params['R_stay']
-
         self.params = params
 
         self.N = params['grid_n']
@@ -72,10 +46,15 @@ class GridBase(Env):
         self.obs_len = len(self.observe_directions)
         self.num_state = self.N * self.M
 
-        self.grid = None
-        
-        self.generate_grid = generate_grid
-        self.generate_b0_start_goal = generate_b0_start_goal
+        self.grid = grid
+        self.b0 = b0
+        self.start_state = start_state
+        self.goal_state = goal_state
+        if grid is not None:
+            self.gen_pomdp()
+
+        self.generate_grid = False
+        self.generate_b0_start_goal = False
 
         self.act = params['stayaction']
         # self.fig = None
