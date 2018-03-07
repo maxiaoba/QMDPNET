@@ -31,7 +31,7 @@ params = {
     'K': 30,
     'Pobst': 0.25,  # probability of obstacles in random grid
 
-    'R_obst': -1.0, 'R_goal': 20.0, 'R_step': 0.0,#0.0,#'R_step': -0.1, 'R_obst': -10
+    'R_obst': -1.0, 'R_goal': 20.0, 'R_step': -0.1,#0.0,#'R_step': -0.1, 'R_obst': -10
     'R_stay': -1.0,
     'discount': 0.99,
     'Pmove_succ':Pmove_succ,
@@ -61,7 +61,7 @@ env._wrapped_env.generate_grid=False
 env._wrapped_env.generate_b0_start_goal=False
 env.reset()
 
-log_dir = "./Data/obs_1goal20step0stay_1_gru"
+log_dir = "./Data/obs_1goal20step_01stay_1_gru"
 
 tabular_log_file = osp.join(log_dir, "progress.csv")
 text_log_file = osp.join(log_dir, "debug.log")

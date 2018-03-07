@@ -20,6 +20,7 @@ import tensorflow as tf
 from sandbox.rocky.tf.samplers.batch_sampler import BatchSampler
 import joblib
 import dill
+
 N=10
 M=10
 Pmove_succ=1.0
@@ -31,7 +32,7 @@ params = {
     'K': 30,
     'Pobst': 0.25,  # probability of obstacles in random grid
 
-    'R_obst': -1.0, 'R_goal': 20.0, 'R_step': 0.0,#0.0,#'R_step': -0.1, 'R_obst': -10
+    'R_obst': -1.0, 'R_goal': 20.0, 'R_step': -0.1,#0.0,#'R_step': -0.1, 'R_obst': -10
     'R_stay': -1.0,
     'discount': 0.99,
     'Pmove_succ':Pmove_succ,
@@ -60,8 +61,8 @@ env = TfEnv(GridBase(params,grid=grid,b0=b0,start_state=start_state,goal_state=g
 env._wrapped_env.generate_grid=False
 env._wrapped_env.generate_b0_start_goal=False
 env.reset()
-
-log_dir = "./Data/obs_1goal20step0stay_1_gru"
+# log_dir = "./Data/FixMapStartState"
+log_dir = "./Data/obs_1goal20step_01stay_1"
 
 tabular_log_file = osp.join(log_dir, "progress.csv")
 text_log_file = osp.join(log_dir, "debug.log")
@@ -82,16 +83,18 @@ from Algo import parallel_sampler
 parallel_sampler.initialize(n_parallel=1)
 parallel_sampler.set_seed(0)
 
-policy = CategoricalGRUPolicy(
+policy = QMDPPolicy(
     env_spec=env.spec,
-    name="gru",
+    name="QMDP",
+    qmdp_param=env._wrapped_env.params
 )
 
 
 baseline = LinearFeatureBaseline(env_spec=env.spec)
 
 with tf.Session() as sess:
-    writer = tf.summary.FileWriter(logdir=log_dir,)
+
+    # writer = tf.summary.FileWriter(logdir=log_dir,)
 
     algo = VPG_t(
         env=env,
@@ -105,6 +108,9 @@ with tf.Session() as sess:
         record_rewards=True,
         transfer=False,
     )
+
     algo.train(sess)
-    writer.add_graph(sess.graph)
-    writer.close()
+    # tf.summary.merge_all()
+    # print(sess.graph)
+    # writer.add_graph(sess.graph)
+    # writer.close()
