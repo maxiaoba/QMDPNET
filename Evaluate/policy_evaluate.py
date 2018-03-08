@@ -25,8 +25,8 @@ from matplotlib import pyplot
 
 sess = tf.Session()
 sess.__enter__()
-log_dir = "./Data/Test2"
-data = joblib.load(log_dir+'/params.pkl')
+log_dir = "../Data"
+data = joblib.load(log_dir+'/obs_1goal20step_01stay_1.pkl')
 # env = data['env']
 agent = data['policy']
 max_path_length = 400

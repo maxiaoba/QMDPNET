@@ -47,6 +47,6 @@ env._wrapped_env.generate_b0_start_goal=False
 params = dict(
     env=env,
 )
-joblib.dump(params,'./env.pkl')
+joblib.dump(params,'./env2.pkl')
 
-plot_env(env,save=True,path='Map.pdf')
+plot_env(env,save=True,path='Map2.pdf')
