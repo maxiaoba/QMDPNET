@@ -1,3 +1,5 @@
+import os
+os.environ["CUDA_VISIBLE_DEVICES"]="-1"    #just use CPU
 from sandbox.rocky.tf.algos.trpo import TRPO
 from sandbox.rocky.tf.algos.vpg import VPG
 from Algo.trpo_transfer import TRPO_t
