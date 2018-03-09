@@ -58,7 +58,7 @@ env.reset()
 env._wrapped_env.generate_grid=False
 env._wrapped_env.generate_b0_start_goal=False
 # log_dir = "./Data/FixMapStartState"
-env_path = "../Data/MultiMaze/TrainEnv"
+env_path = "./TrainEnv"
 log_dir = "./Data/obs_1goal20step_01stay_1_keep10"
 
 tabular_log_file = osp.join(log_dir, "progress.csv")
