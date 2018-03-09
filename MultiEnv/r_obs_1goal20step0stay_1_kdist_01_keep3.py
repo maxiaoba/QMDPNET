@@ -20,7 +20,7 @@ from sandbox.rocky.tf.samplers.batch_sampler import BatchSampler
 import joblib
 
 env_path = "./TrainEnv"
-log_dir = "./Data/obs_1goal20step_01stay_1_keep3"
+log_dir = "./Data/obs_1goal20step0stay_1_kdist_01_keep3"
 
 tabular_log_file = osp.join(log_dir, "progress.csv")
 text_log_file = osp.join(log_dir, "debug.log")
