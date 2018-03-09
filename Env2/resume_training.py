@@ -32,19 +32,26 @@ with tf.Session() as sess:
     env=params['env']
     rewards=params['rewards']
 
-    algo = VPG_t(
-        env=env,
-        policy=policy,
-        baseline=baseline,
-        batch_size=2048,#2*env._wrapped_env.params['traj_limit'],
-        max_path_length=env._wrapped_env.params['traj_limit'],
-        n_itr=10000,
-        discount=0.95,
-        step_size=0.01,
-        record_rewards=True,
-        rewards=rewards,
-        transfer=True,
-        start_itr=itr,
-    )
+    # initialize uninitialize variables
+    global_vars          = tf.global_variables()
+    is_not_initialized   = sess.run([tf.is_variable_initialized(var) for var in global_vars])
+    not_initialized_vars = [v for (v, f) in zip(global_vars, is_not_initialized) if not f]
 
-    algo.train(sess)
+    print [str(i.name) for i in not_initialized_vars] # only for testing
+
+    # algo = VPG_t(
+    #     env=env,
+    #     policy=policy,
+    #     baseline=baseline,
+    #     batch_size=2048,#2*env._wrapped_env.params['traj_limit'],
+    #     max_path_length=env._wrapped_env.params['traj_limit'],
+    #     n_itr=10000,
+    #     discount=0.95,
+    #     step_size=0.01,
+    #     record_rewards=True,
+    #     rewards=rewards,
+    #     transfer=True,
+    #     start_itr=itr,
+    # )
+
+    # algo.train(sess)
