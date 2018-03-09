@@ -51,14 +51,6 @@ with tf.Session() as sess:
     env=params['env']
     rewards=params['rewards']
 
-    # initialize uninitialize variables
-    # global_vars          = tf.global_variables()
-    # print([str(v.name) for v in global_vars])
-    # is_initialized   = sess.run([tf.is_variable_initialized(var) for var in global_vars])
-    # not_initialized_vars = [v for (v, f) in zip(global_vars, is_initialized) if not f]
-
-    # print([str(i.name) for i in not_initialized_vars]) # only for testing
-
     algo = VPG_t(
         env=env,
         policy=policy,
