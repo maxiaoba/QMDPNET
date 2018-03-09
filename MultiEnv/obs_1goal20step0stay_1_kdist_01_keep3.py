@@ -6,7 +6,7 @@ from rllab.baselines.linear_feature_baseline import LinearFeatureBaseline
 from sandbox.rocky.tf.optimizers.conjugate_gradient_optimizer import ConjugateGradientOptimizer, FiniteDifferenceHvp
 from sandbox.rocky.tf.optimizers.penalty_lbfgs_optimizer import PenaltyLbfgsOptimizer
 
-from Env.grid_env import GridBase
+from Env.grid_env_r import GridBase
 from rllab.misc.instrument import stub, run_experiment_lite
 from qmdp_policy import QMDPPolicy
 from sandbox.rocky.tf.policies.categorical_gru_policy import CategoricalGRUPolicy
@@ -49,6 +49,7 @@ params['num_state'] = params['grid_n']*params['grid_m']
 params['traj_limit'] = 4 * (params['grid_n'] * params['grid_m']) # 4 * (params['grid_n'] + params['grid_m'])
 params['R_step'] = [params['R_step']] * params['num_action']
 params['R_step'][params['stayaction']] = params['R_stay']
+params['kdist'] = -0.1
 
 env = TfEnv(GridBase(params))
 env._wrapped_env.generate_grid=True
@@ -58,7 +59,7 @@ env._wrapped_env.generate_grid=False
 env._wrapped_env.generate_b0_start_goal=False
 # log_dir = "./Data/FixMapStartState"
 env_path = "./TrainEnv"
-log_dir = "./Data/obs_1goal20step_01stay_1_keep1"
+log_dir = "./Data/obs_1goal20step0stay_1_kdist_01_keep3"
 
 tabular_log_file = osp.join(log_dir, "progress.csv")
 text_log_file = osp.join(log_dir, "debug.log")
@@ -103,7 +104,7 @@ with tf.Session() as sess:
         transfer=False,
         env_path=env_path,
         env_num=500,
-        env_keep_itr=1,
+        env_keep_itr=3,
     )
 
     algo.train(sess)

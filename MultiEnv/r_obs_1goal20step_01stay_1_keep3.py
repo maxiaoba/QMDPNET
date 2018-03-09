@@ -19,46 +19,8 @@ import tensorflow as tf
 from sandbox.rocky.tf.samplers.batch_sampler import BatchSampler
 import joblib
 
-N=10
-M=10
-Pmove_succ=1.0
-Pobs_succ=1.0
-
-params = {
-    'grid_n': N,
-    'grid_m': M,
-    'K': 30,
-    'Pobst': 0.25,  # probability of obstacles in random grid
-
-    'R_obst': -1.0, 'R_goal': 20.0, 'R_step': -0.1,#0.0,#'R_step': -0.1, 'R_obst': -10
-    'R_stay': -1.0,
-    'discount': 0.99,
-    'Pmove_succ':Pmove_succ,
-    'Pobs_succ': Pobs_succ,
-
-    'num_action': 5,
-    'moves': [[0, 1], [1, 0], [0, -1], [-1, 0], [0, 0]],  # right, down, left, up, stay
-    'stayaction': 4,
-
-    'num_obs': 16,
-    'observe_directions': [[0, 1], [1, 0], [0, -1], [-1, 0]],
-    }
-
-params['obs_len'] = len(params['observe_directions'])
-params['num_state'] = params['grid_n']*params['grid_m']
-params['traj_limit'] = 4 * (params['grid_n'] * params['grid_m']) # 4 * (params['grid_n'] + params['grid_m'])
-params['R_step'] = [params['R_step']] * params['num_action']
-params['R_step'][params['stayaction']] = params['R_stay']
-
-env = TfEnv(GridBase(params))
-env._wrapped_env.generate_grid=True
-env._wrapped_env.generate_b0_start_goal=True
-env.reset()
-env._wrapped_env.generate_grid=False
-env._wrapped_env.generate_b0_start_goal=False
-# log_dir = "./Data/FixMapStartState"
 env_path = "./TrainEnv"
-log_dir = "./Data/obs_1goal20step_01stay_1_keep1"
+log_dir = "./Data/obs_1goal20step_01stay_1_keep3"
 
 tabular_log_file = osp.join(log_dir, "progress.csv")
 text_log_file = osp.join(log_dir, "debug.log")
@@ -79,16 +41,13 @@ from Algo import parallel_sampler
 parallel_sampler.initialize(n_parallel=1)
 parallel_sampler.set_seed(0)
 
-policy = QMDPPolicy(
-    env_spec=env.spec,
-    name="QMDP",
-    qmdp_param=env._wrapped_env.params
-)
-
-
-baseline = LinearFeatureBaseline(env_spec=env.spec)
-
 with tf.Session() as sess:
+    params = joblib.load(log_dir+'/params.pkl')
+    itr=params['itr']
+    policy=params['policy']
+    baseline=params['baseline']
+    env=params['env']
+    rewards=params['rewards']
 
     algo = VPG_t(
         env=env,
@@ -100,10 +59,12 @@ with tf.Session() as sess:
         discount=0.95,
         step_size=0.01,
         record_rewards=True,
-        transfer=False,
+        transfer=True,
         env_path=env_path,
         env_num=500,
-        env_keep_itr=1,
+        env_keep_itr=3,
+        rewards=rewards,
+        start_itr=itr,
     )
 
     algo.train(sess)

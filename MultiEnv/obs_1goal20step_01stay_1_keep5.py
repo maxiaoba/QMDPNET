@@ -58,7 +58,7 @@ env._wrapped_env.generate_grid=False
 env._wrapped_env.generate_b0_start_goal=False
 # log_dir = "./Data/FixMapStartState"
 env_path = "./TrainEnv"
-log_dir = "./Data/obs_1goal20step_01stay_1_keep1"
+log_dir = "./Data/obs_1goal20step_01stay_1_keep5"
 
 tabular_log_file = osp.join(log_dir, "progress.csv")
 text_log_file = osp.join(log_dir, "debug.log")
@@ -96,14 +96,14 @@ with tf.Session() as sess:
         baseline=baseline,
         batch_size=2048,
         max_path_length=env._wrapped_env.params['traj_limit'],
-        n_itr=20000,
+        n_itr=1,
         discount=0.95,
         step_size=0.01,
         record_rewards=True,
         transfer=False,
         env_path=env_path,
         env_num=500,
-        env_keep_itr=1,
+        env_keep_itr=5,
     )
 
     algo.train(sess)
