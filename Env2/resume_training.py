@@ -44,7 +44,7 @@ with tf.Session() as sess:
         record_rewards=True,
         rewards=rewards,
         transfer=True,
-        start_itr=idx,
+        start_itr=itr,
     )
 
     algo.train(sess)
