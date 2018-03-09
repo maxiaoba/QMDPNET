@@ -24,6 +24,11 @@ import joblib
 
 log_dir = "./Data/obs_1goal20step0stay_1"
 
+tabular_log_file = osp.join(log_dir, "progress.csv")
+text_log_file = osp.join(log_dir, "debug.log")
+params_log_file = osp.join(log_dir, "params.json")
+pkl_file = osp.join(log_dir, "params.pkl")
+
 logger.add_text_output(text_log_file)
 logger.add_tabular_output(tabular_log_file)
 prev_snapshot_dir = logger.get_snapshot_dir()
