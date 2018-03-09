@@ -24,6 +24,20 @@ import joblib
 
 log_dir = "./Data/obs_1goal20step0stay_1"
 
+logger.add_text_output(text_log_file)
+logger.add_tabular_output(tabular_log_file)
+prev_snapshot_dir = logger.get_snapshot_dir()
+prev_mode = logger.get_snapshot_mode()
+logger.set_snapshot_dir(log_dir)
+logger.set_snapshot_mode("gaplast")
+logger.set_snapshot_gap(1000)
+logger.set_log_tabular_only(False)
+logger.push_prefix("[%s] " % "FixMapStartState")
+
+from Algo import parallel_sampler
+parallel_sampler.initialize(n_parallel=1)
+parallel_sampler.set_seed(0)
+
 with tf.Session() as sess:
     params = joblib.load(log_dir+'/params.pkl')
     itr=params['itr']
@@ -33,26 +47,26 @@ with tf.Session() as sess:
     rewards=params['rewards']
 
     # initialize uninitialize variables
-    global_vars          = tf.global_variables()
-    print([str(v.name) for v in global_vars])
-    is_initialized   = sess.run([tf.is_variable_initialized(var) for var in global_vars])
-    not_initialized_vars = [v for (v, f) in zip(global_vars, is_initialized) if not f]
+    # global_vars          = tf.global_variables()
+    # print([str(v.name) for v in global_vars])
+    # is_initialized   = sess.run([tf.is_variable_initialized(var) for var in global_vars])
+    # not_initialized_vars = [v for (v, f) in zip(global_vars, is_initialized) if not f]
 
-    print([str(i.name) for i in not_initialized_vars]) # only for testing
+    # print([str(i.name) for i in not_initialized_vars]) # only for testing
 
-    # algo = VPG_t(
-    #     env=env,
-    #     policy=policy,
-    #     baseline=baseline,
-    #     batch_size=2048,#2*env._wrapped_env.params['traj_limit'],
-    #     max_path_length=env._wrapped_env.params['traj_limit'],
-    #     n_itr=10000,
-    #     discount=0.95,
-    #     step_size=0.01,
-    #     record_rewards=True,
-    #     rewards=rewards,
-    #     transfer=True,
-    #     start_itr=itr,
-    # )
+    algo = VPG_t(
+        env=env,
+        policy=policy,
+        baseline=baseline,
+        batch_size=2048,#2*env._wrapped_env.params['traj_limit'],
+        max_path_length=env._wrapped_env.params['traj_limit'],
+        n_itr=10000,
+        discount=0.95,
+        step_size=0.01,
+        record_rewards=True,
+        rewards=rewards,
+        transfer=True,
+        start_itr=itr,
+    )
 
     # algo.train(sess)
