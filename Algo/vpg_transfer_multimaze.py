@@ -179,7 +179,7 @@ class VPG_t(BatchPolopt, Serializable):
         for itr in range(self.start_itr, self.n_itr):
             itr_start_time = time.time()
             with logger.prefix('itr #%d | ' % itr):
-                if itr % self.env_keep_itr == 0:
+                if itr % self.env_keep_itr == 0 or (not 'env_num' in locals()):
                     env_num = np.random.randint(self.env_num)
                     params = joblib.load(self.env_path+'/env_'+str(env_num)+'.pkl')
                     env_ref = params['env']
