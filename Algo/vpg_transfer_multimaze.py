@@ -14,7 +14,7 @@ from sandbox.rocky.tf.misc import tensor_utils
 from rllab.core.serializable import Serializable
 import tensorflow as tf
 import joblib
-
+from sandbox.rocky.tf.envs.base import TfEnv
 
 class VPG_t(BatchPolopt, Serializable):
     """
@@ -173,7 +173,20 @@ class VPG_t(BatchPolopt, Serializable):
                 if itr % self.env_keep_itr == 0:
                     env_num = np.random.randint(self.env_num)
                     params = joblib.load(self.env_path+'/env_'+str(env_num)+'.pkl')
-                    self.env = params['env']
+                    env_ref = params['env']
+                    grid = env_ref._wrapped_env.grid
+                    b0 = env_ref._wrapped_env.b0
+                    start_state = env_ref._wrapped_env.start_state
+                    goal_state = env_ref._wrapped_env.goal_state
+                    # env = TfEnv(GridBase(self.env._wrapped_env.params,grid=grid,b0=b0,start_state=start_state,goal_state=goal_state))
+                    # env._wrapped_env.generate_grid=False
+                    # env._wrapped_env.generate_b0_start_goal=False
+                    # env.reset()
+                    self.env._wrapped_env.__init__(self.env._wrapped_env.params,grid=grid,b0=b0,start_state=start_state,goal_state=goal_state)
+                    self.env._wrapped_env.generate_grid=False
+                    self.env._wrapped_env.generate_b0_start_goal=False
+                    self.env.reset()
+
                 logger.log("Obtaining samples at env %d" % env_num)
                 paths = self.obtain_samples(itr)
                 logger.log("Processing samples...")

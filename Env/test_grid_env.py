@@ -31,10 +31,27 @@ params['num_state'] = params['grid_n']*params['grid_m']
 params['traj_limit'] = 4 * (params['grid_n'] * params['grid_m']) # 4 * (params['grid_n'] + params['grid_m'])
 params['R_step'] = [params['R_step']] * params['num_action']
 params['R_step'][params['stayaction']] = params['R_stay']
+params['kdist'] = -0.1
 
 env = GridBase(params)
 env.generate_grid=True
 env.generate_b0_start_goal=True
 env.reset()
-tfenv = TfEnv(env)
-tfenv.step(1)
+env.generate_grid=False
+env.generate_b0_start_goal=False
+env1 = TfEnv(env)
+env1_params = env1.get_param_values()
+print(env1.step(1))
+
+env2 = TfEnv(GridBase(params))
+env2.set_param_values(env1.get_param_values())
+env2.reset()
+print(env2.step(1))
+
+env3 = TfEnv(GridBase(params))
+env3._wrapped_env.__init__(env1._wrapped_env.params,grid=env1._wrapped_env.grid,b0=env1._wrapped_env.b0,\
+                start_state=env1._wrapped_env.start_state,goal_state=env1._wrapped_env.goal_state)
+env3._wrapped_env.generate_grid=False
+env3._wrapped_env.generate_b0_start_goal=False
+env3.reset()
+print(env3.step(1))

@@ -1,10 +1,7 @@
 import os
 os.environ["CUDA_VISIBLE_DEVICES"]="-1"    #just use CPU
-from sandbox.rocky.tf.algos.trpo import TRPO
-from sandbox.rocky.tf.algos.vpg import VPG
-from Algo.trpo_transfer import TRPO_t
-from Algo.vpg_transfer import VPG_t
-from Algo.npo_transfer import NPO_t
+
+from Algo.vpg_transfer_multimaze import VPG_t
 from rllab.baselines.linear_feature_baseline import LinearFeatureBaseline
 from sandbox.rocky.tf.optimizers.conjugate_gradient_optimizer import ConjugateGradientOptimizer, FiniteDifferenceHvp
 from sandbox.rocky.tf.optimizers.penalty_lbfgs_optimizer import PenaltyLbfgsOptimizer
@@ -21,6 +18,7 @@ import os.path as osp
 import tensorflow as tf
 from sandbox.rocky.tf.samplers.batch_sampler import BatchSampler
 import joblib
+import dill
 
 N=10
 M=10
@@ -53,17 +51,15 @@ params['traj_limit'] = 4 * (params['grid_n'] * params['grid_m']) # 4 * (params['
 params['R_step'] = [params['R_step']] * params['num_action']
 params['R_step'][params['stayaction']] = params['R_stay']
 
-env_ref = joblib.load('./env.pkl')['env']
-grid = env_ref._wrapped_env.grid
-b0 = env_ref._wrapped_env.b0
-start_state = env_ref._wrapped_env.start_state
-goal_state = env_ref._wrapped_env.goal_state
-env = TfEnv(GridBase(params,grid=grid,b0=b0,start_state=start_state,goal_state=goal_state))
+env = TfEnv(GridBase(params))
+env._wrapped_env.generate_grid=True
+env._wrapped_env.generate_b0_start_goal=True
+env.reset()
 env._wrapped_env.generate_grid=False
 env._wrapped_env.generate_b0_start_goal=False
-env.reset()
-
-log_dir = "./Data/obs_1goal20step_01stay_1_gru"
+# log_dir = "./Data/FixMapStartState"
+env_path = "../Data/MultiMaze/TrainEnv"
+log_dir = "./Data/obs_1goal20step_01stay_1_keep1"
 
 tabular_log_file = osp.join(log_dir, "progress.csv")
 text_log_file = osp.join(log_dir, "debug.log")
@@ -84,29 +80,31 @@ from Algo import parallel_sampler
 parallel_sampler.initialize(n_parallel=1)
 parallel_sampler.set_seed(0)
 
-policy = CategoricalGRUPolicy(
+policy = QMDPPolicy(
     env_spec=env.spec,
-    name="gru",
+    name="QMDP",
+    qmdp_param=env._wrapped_env.params
 )
 
 
 baseline = LinearFeatureBaseline(env_spec=env.spec)
 
 with tf.Session() as sess:
-    writer = tf.summary.FileWriter(logdir=log_dir,)
 
     algo = VPG_t(
         env=env,
         policy=policy,
         baseline=baseline,
-        batch_size=2048,#2*env._wrapped_env.params['traj_limit'],
+        batch_size=2048,
         max_path_length=env._wrapped_env.params['traj_limit'],
-        n_itr=10000,
+        n_itr=20000,
         discount=0.95,
         step_size=0.01,
         record_rewards=True,
         transfer=False,
+        env_path=env_path,
+        env_num=500,
+        env_keep_itr=1,
     )
+
     algo.train(sess)
-    writer.add_graph(sess.graph)
-    writer.close()
