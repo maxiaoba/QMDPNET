@@ -74,4 +74,4 @@ with tf.Session() as sess:
         start_itr=itr,
     )
 
-    # algo.train(sess)
+    algo.train(sess)
