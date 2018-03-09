@@ -165,6 +165,15 @@ class VPG_t(BatchPolopt, Serializable):
             sess.__enter__()
         if not self.transfer:
             sess.run(tf.global_variables_initializer())
+
+        #initialize uninitialize variables
+        global_vars          = tf.global_variables()
+        is_initialized   = sess.run([tf.is_variable_initialized(var) for var in global_vars])
+        not_initialized_vars = [v for (v, f) in zip(global_vars, is_initialized) if not f]
+        # print([str(i.name) for i in not_initialized_vars]) # only for testing
+        if len(not_initialized_vars):
+            sess.run(tf.variables_initializer(not_initialized_vars))
+            
         self.start_worker()
         start_time = time.time()
         for itr in range(self.start_itr, self.n_itr):
