@@ -36,24 +36,24 @@ params['traj_limit'] = 4 * (params['grid_n'] * params['grid_m']) # 4 * (params['
 params['R_step'] = [params['R_step']] * params['num_action']
 params['R_step'][params['stayaction']] = params['R_stay']
 
-log_dir = "./Data/MultiMaze"
+log_dir = "./MultiEnv"
 
 # generate TrainENV file
-TrainEnvNum = 500
-env = TfEnv(GridBase(params))
-env._wrapped_env.generate_grid=True
-env._wrapped_env.generate_b0_start_goal=True
+# TrainEnvNum = 500
+# env = TfEnv(GridBase(params))
+# env._wrapped_env.generate_grid=True
+# env._wrapped_env.generate_b0_start_goal=True
 
-for i in range(TrainEnvNum):
-    env.reset()
-    params = dict(
-        env=env,
-    )
-    joblib.dump(params,log_dir+'/TrainEnv'+'/env_'+str(i)+'.pkl')
-    plot_env(env,save=True,path=log_dir+'/TrainEnv'+'/Map_'+str(i)+'.pdf')
+# for i in range(TrainEnvNum):
+#     env.reset()
+#     params = dict(
+#         env=env,
+#     )
+#     joblib.dump(params,log_dir+'/TrainEnv'+'/env_'+str(i)+'.pkl')
+#     plot_env(env,save=True,path=log_dir+'/TrainEnv'+'/Map_'+str(i)+'.pdf')
 
 # generate TestENV file
-TestEnvNum = 10
+TestEnvNum = 20
 env = TfEnv(GridBase(params))
 env._wrapped_env.generate_grid=True
 env._wrapped_env.generate_b0_start_goal=True
