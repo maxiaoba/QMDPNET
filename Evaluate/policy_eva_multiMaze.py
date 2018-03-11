@@ -7,7 +7,7 @@ import os
 sess = tf.Session()
 sess.__enter__()
 
-log_dir = "../MultiEnv/Data"
+log_dir = "../MultiEnv/Data/QMDP"
 
 names = []
 for policy in os.listdir(log_dir):
