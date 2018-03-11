@@ -59,7 +59,7 @@ env._wrapped_env.generate_grid=False
 env._wrapped_env.generate_b0_start_goal=False
 # log_dir = "./Data/FixMapStartState"
 env_path = "./TrainEnv"
-log_dir = "./Data/b_obs_1goal20step0stay_1_kdist_01_keep5"
+log_dir = "./Data/b_obs_1goal20step0stay_1_kdist_01_keep10"
 
 tabular_log_file = osp.join(log_dir, "progress.csv")
 text_log_file = osp.join(log_dir, "debug.log")
