@@ -7,11 +7,12 @@ class PlannerNet(object):
         # self.params = params
         self.K = qmdp_param['K']
         self.num_action = qmdp_param['num_action']
-        self.f_R = F_R(qmdp_param['num_action'], parent_layer = parent_layer)
-        self.f_pi = F_pi(qmdp_param['num_action'], qmdp_param['num_action'], parent_layer=parent_layer)
-        self.f_T = F_T(qmdp_param['num_action'], name="planner_net", parent_layer=parent_layer)
+        self.num_state = qmdp_param['num_state']
+        self.f_R = F_R(self.num_state,self.num_action, parent_layer=parent_layer)
+        self.f_pi = F_pi(self.num_action, self.num_action, parent_layer=parent_layer)
+        self.f_T = F_T(self.num_state,self.num_action, name="planner_net", parent_layer=parent_layer)
 
-    def VI(self, map, goal):
+    def VI(self, R0):
         """
         builds neural network implementing value iteration. this is the first part of planner module. Fixed through time.
         inputs: map (batch x N x N) and goal(batch)
@@ -19,15 +20,14 @@ class PlannerNet(object):
         """
         # build reward model R
         # R = PlannerNet.f_R(map, goal, params.num_action,parent_layer=parent_layer)
-        R = self.f_R.step(map, goal)
+        R = self.f_R.step(R0)
 
         # get transition model Tprime. It represents the transition model in the filter, but the weights are not shared.
         # kernel = FilterNet.f_T(params.num_action,parent_layer=parent_layer)
 
         # initialize value image
         # V = tf.zeros(map.get_shape().as_list() + [1])
-        V = tf.zeros(tf.shape(map))
-        V = tf.expand_dims(V,-1)
+        V = tf.zeros((tf.shape(R0).as_list()[0],self.num_state))
         Q = None
 
         # repeat value iteration K times
@@ -36,7 +36,7 @@ class PlannerNet(object):
             # Q = tf.nn.conv2d(V, kernel, [1, 1, 1, 1], padding='SAME')
             Q = self.f_T.step(V)
             Q = Q + R
-            V = tf.reduce_max(Q, axis=[3], keep_dims=True)
+            V = tf.reduce_max(Q, axis=[2], keep_dims=False)
 
         return Q, V, R
 
@@ -49,10 +49,10 @@ class PlannerNet(object):
         :return: a_pred,  vector with num_action elements, each has the
         """
         # weight Q by the belief
-        b_tiled = tf.tile(tf.expand_dims(b, 3), [1, 1, 1, self.num_action])
+        b_tiled = tf.tile(tf.expand_dims(b, 2), [1, 1, self.num_action])
         q = tf.multiply(Q, b_tiled)
         # sum over states
-        q = tf.reduce_sum(q, [1, 2], keep_dims=False)
+        q = tf.reduce_sum(q, 1, keep_dims=False)
         #self.printQ = tf.Print(q,[q],'q: ')
         self.q = q
         # low-level policy, f_pi
@@ -66,10 +66,11 @@ class FilterNet(object):
     def __init__(self, qmdp_param, parent_layer=None):
         # self.params = params
         self.num_action = qmdp_param['num_action']
-        self.f_T = F_T(qmdp_param['num_action'], name="filter_net", parent_layer=parent_layer)
+        self.num_state = qmdp_param['num_state']
+        self.f_T = F_T(self.num_state,self.num_action, name="filter_net", parent_layer=parent_layer)
         self.f_A = F_A()
         self.f_O = F_O(qmdp_param['obs_len'], parent_layer=parent_layer)
-        self.f_Z = F_Z(parent_layer=parent_layer)
+        self.f_Z = F_Z(qmdp_param['info_len'],parent_layer=parent_layer)
 
     def beliefupdate(self, Z, b, action, local_obs):
         """
@@ -84,16 +85,16 @@ class FilterNet(object):
         # kernel = FilterNet.f_T(params.num_action, parent_layer=parent_layer)
 
         # apply convolution which corresponds to the transition function in an MDP (f_T)
-        b = tf.expand_dims(b, -1)
+        # b = tf.expand_dims(b, -1)
         # b_prime = tf.nn.conv2d(b, kernel, [1, 1, 1, 1], padding='SAME')
         b_prime = self.f_T.step(b)
 
         # index into the appropriate channel of b_prime
         # w_A = FilterNet.f_A(action, params.num_action, parent_layer=parent_layer)
         w_A = self.f_A.step(action, self.num_action)
-        w_A = w_A[:, None, None] #w_A to shape [batch,1,1,|A|]
+        w_A = w_A[:, None] #w_A to shape [batch,1,|A|]
         w_A = tf.to_float(w_A)
-        b_prime_a = tf.reduce_sum(tf.multiply(b_prime, w_A), [3], keep_dims=False) # soft indexing
+        b_prime_a = tf.reduce_sum(tf.multiply(b_prime, w_A), [2], keep_dims=False) # soft indexing
 
         #b_prime_a = tf.abs(b_prime_a) # TODO there was this line. does it make a difference with softmax?
 
@@ -101,47 +102,50 @@ class FilterNet(object):
         # get observation probabilities for the obseravtion input by soft indexing
         # w_O = FilterNet.f_O(local_obs, parent_layer=parent_layer)
         w_O = self.f_O.step(local_obs)
-        w_O = w_O[:,None,None] #tf.expand_dims(tf.expand_dims(w_O, axis=1), axis=1)
-        Z_o = tf.reduce_sum(tf.multiply(Z, w_O), [3], keep_dims=False) # soft indexing
+        w_O = w_O[:,None] #tf.expand_dims(tf.expand_dims(w_O, axis=1), axis=1)
+        Z_o = tf.reduce_sum(tf.multiply(Z, w_O), [2], keep_dims=False) # soft indexing
 
         b_next = tf.multiply(b_prime_a, Z_o)
 
         # step 3: normalize over the state space
         # add small number to avoid division by zero
-        # b_next = tf.div(b_next, tf.reduce_sum(b_next, [1, 2], keep_dims=True) + 1e-8)
-        b_next = tf.div(b_next + 1e-8, tf.reduce_sum(b_next + 1e-8, [1, 2], keep_dims=True))
+        b_next = tf.div(b_next + 1e-8, tf.reduce_sum(b_next + 1e-8, [1], keep_dims=True))
 
         return b_next
 
 class F_R(object):
-    def __init__(self, num_action, parent_layer=None):
-        self.convlayers = ConvLayers(2, np.array([[3, 150, 'relu'], [1, num_action, 'lin']]), "R_conv", parent_layer=parent_layer)
-    def step(self, map, goal):
-        theta = tf.stack([map, goal], axis=3)
-        return self.convlayers.step(theta)
+    def __init__(self, num_state, num_action, parent_layer=None):
+        # self.convlayers = ConvLayers(2, np.array([[3, 150, 'relu'], [1, num_action, 'lin']]), "R_conv", parent_layer=parent_layer)
+        self.num_state = num_state
+        self.num_action = num_action
+        self.fclayers = FcLayers(num_state*num_action,np.array([[3*num_state*num_action, 'relu'], [num_state*num_action, 'lin']]), "R_fc",parent_layer=parent_layer)
+    def step(self, R0):
+        # theta = tf.stack([map, goal], axis=3)
+        R = self.fclayers.step(R0)
+        R = tf.reshape(R, [-1,self.num_state,self.num_action])
+        return R
 
 class F_T(object):
-    def __init__(self, num_action, name, parent_layer=None):
-        # get transition kernel
-        initializer = tf.truncated_normal_initializer(mean=1.0/9.0, stddev=1.0/90.0, dtype=tf.float32)
-        # kernel = tf.get_variable("w_T_conv", [3 * 3, num_action], initializer=initializer, dtype=tf.float32)
-        kernel = parent_layer.add_param_plain(initializer, [3 * 3, num_action], name=name+"w_T_conv", trainable=True, regularizable=True)
-        self.kernel = kernel
+    def __init__(self, num_state, num_action, name, parent_layer=None):
+        self.num_state = num_state
         self.num_action = num_action
+        self.fclayers = FcLayers(num_state,np.array([[num_state*num_action, 'lin']]), name+"T_fc",parent_layer=parent_layer)
+
     def step(self, input):
-        kernel = tf.nn.softmax(self.kernel, dim=0)
-        kernel = tf.reshape(kernel, [3, 3, 1, self.num_action])
-        return tf.nn.conv2d(input, kernel, [1, 1, 1, 1], padding='SAME')
+        out = self.fclayers.step(input)
+        out = tf.reshape(out, [-1,self.num_state,self.num_action])
+        out = tf.nn.softmax(out,axis=1)
+        return out
 
 class F_Z(object):
-    def __init__(self, parent_layer=None):
-        self.convlayers = ConvLayers(1, np.array([[3, 150, 'lin'], [1, 17, 'sig']]), "Z_conv", parent_layer=parent_layer)
-    def step(self, map):
-        map = tf.expand_dims(map, -1)
-        Z = self.convlayers.step(map)
-        # normalize over observations
-        Z_sum = tf.reduce_sum(Z, [3], keep_dims=True)
-        Z = tf.div(Z, Z_sum + 1e-8)  # add a small number to avoid division by zero
+    def __init__(self, info_len,parent_layer=None):
+        # self.convlayers = ConvLayers(1, np.array([[3, 150, 'lin'], [1, 17, 'sig']]), "Z_conv", parent_layer=parent_layer)
+        self.num_obs = 17
+        self.fclayers = FcLayers(info_len,np.array([[3*num_state*self.num_obs, 'relu'], [num_state*self.num_obs, 'sig']]), "Z_fc",parent_layer=parent_layer)
+    def step(self, info):
+        Z = self.fclayers.step(info)
+        Z = tf.reshape(Z, [-1,self.num_state,self.num_obs])
+        Z = tf.nn.softmax(Z,axis=2)
         return Z
 
 class F_A(object):
@@ -155,7 +159,8 @@ class F_A(object):
 
 class F_O(object):
     def __init__(self, obs_len, parent_layer=None):
-        self.fclayers = FcLayers(obs_len, np.array([[17, 'tanh'], [17, 'smax']]), names="O_fc", parent_layer=parent_layer)
+        self.num_obs = 17
+        self.fclayers = FcLayers(obs_len, np.array([[self.num_obs, 'tanh'], [self.num_obs, 'smax']]), names="O_fc", parent_layer=parent_layer)
     def step(self, local_obs):
         w_O = self.fclayers.step(local_obs)
         return w_O

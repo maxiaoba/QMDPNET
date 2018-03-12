@@ -25,8 +25,8 @@ from matplotlib import pyplot
 
 sess = tf.Session()
 sess.__enter__()
-log_dir = "./Data/MultiMaze"
-data = joblib.load(log_dir+'/params.pkl')
+log_dir = "../MultiEnv/Data/QMDP/obs_1goal20step0stay_1_kdist_01_keep1.pkl"
+data = joblib.load(log_dir)
 # env = data['env']
 agent = data['policy']
 max_path_length = 400
@@ -34,9 +34,9 @@ animated = True
 speedup = 1
 
 pyplot.show()
-for i in range(10):
+for i in range(20):
     print('load env: ',i)
-    data = joblib.load(log_dir+'/TestEnv'+'/env_'+str(i)+'.pkl')
+    data = joblib.load('../MultiEnv/TestEnv'+'/env_'+str(i)+'.pkl')
     env = data['env']
     env._wrapped_env.generate_grid=False
     env._wrapped_env.generate_b0_start_goal=False
@@ -49,6 +49,8 @@ for i in range(10):
     print('first render')
     if animated:
         env.render()
+    if i == 0:
+        pyplot.pause(20)
 
     while path_length < max_path_length:
         a, agent_info = agent.get_action(o)
