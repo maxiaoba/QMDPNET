@@ -17,10 +17,8 @@ def rollout(env, agent, max_path_length=np.inf, animated=False, speedup=1,
         env._wrapped_env.generate_b0_start_goal=False
     # print(env._wrapped_env.env_img)
     o = env.reset()
-    if hasattr(agent, 'prob_network'):
-        if hasattr(agent.prob_network, '_l_gru'):
-            if hasattr(agent.prob_network._l_gru, 'map'):
-                agent.reset(env._wrapped_env.env_img, env._wrapped_env.goal_img, env._wrapped_env.b0_img)
+    if hasattr(agent, 'prob_network') and hasattr(agent.prob_network, '_l_gru') and hasattr(agent.prob_network._l_gru, 'map'):
+        agent.reset(env._wrapped_env.env_img, env._wrapped_env.goal_img, env._wrapped_env.b0_img)
     else:
         agent.reset()
     path_length = 0
