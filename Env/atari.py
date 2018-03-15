@@ -34,7 +34,7 @@ def to_ram(ale):
 class AtariEnv(Env, utils.EzPickle):
     metadata = {'render.modes': ['human', 'rgb_array']}
 
-    def __init__(self, PO=True ,game='pong', obs_type='ram', frameskip=(2, 5), repeat_action_probability=0.):
+    def __init__(self, mask_num=0 ,game='pong', obs_type='ram', frameskip=(2, 5), repeat_action_probability=0.):
         """Frameskip should be either a tuple (indicating a random range to
         choose from, with the top value exclude), or an int."""
 
@@ -59,6 +59,8 @@ class AtariEnv(Env, utils.EzPickle):
         (screen_width, screen_height) = self.ale.getScreenDims()
 
         self._action_set = self.ale.getMinimalActionSet()
+
+        self.mask_num = mask_num
 
     @property
     def observation_space(self):
@@ -111,10 +113,9 @@ class AtariEnv(Env, utils.EzPickle):
 
     def _get_obs(self):
         if self._obs_type == 'ram':
-            if PO:
-                
-            else:
-                return self._get_ram()
+            mask = np.ones(128)
+            mask[np.random.choice(128,self.mask_num)] = 0.0
+            return self._get_ram()*mask
         elif self._obs_type == 'image':
             img = self._get_image()
         return img

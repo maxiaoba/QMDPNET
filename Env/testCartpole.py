@@ -1,7 +1,7 @@
 from Env.cartpole import CartPoleEnv
 from sandbox.rocky.tf.envs.base import TfEnv
 
-env = TfEnv(CartPoleEnv(True))
+env = TfEnv(CartPoleEnv(2))
 
 env.reset()
 env.render()

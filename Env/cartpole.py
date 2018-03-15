@@ -23,7 +23,7 @@ class CartPoleEnv(Env):
         'video.frames_per_second' : 50
     }
 
-    def __init__(self,PO=True):
+    def __init__(self,mask_num=0):
         self.gravity = 9.8
         self.masscart = 1.0
         self.masspole = 0.1
@@ -38,16 +38,11 @@ class CartPoleEnv(Env):
         self.x_threshold = 2.4
 
         # Angle limit set to 2 * theta_threshold_radians so failing observation is still within bounds
-        if PO:
-            self.high = np.array([
-                self.x_threshold * 2,
-                self.theta_threshold_radians * 2])
-        else:
-            self.high = np.array([
-                self.x_threshold * 2,
-                np.finfo(np.float32).max,
-                self.theta_threshold_radians * 2,
-                np.finfo(np.float32).max])
+        self.high = np.array([
+            self.x_threshold * 2,
+            np.finfo(np.float32).max,
+            self.theta_threshold_radians * 2,
+            np.finfo(np.float32).max])
 
         self.low = -self.high
 
@@ -58,7 +53,7 @@ class CartPoleEnv(Env):
 
         self.steps_beyond_done = None
 
-        self.PO = PO
+        self.mask_num = mask_num
 
     @property
     def observation_space(self):
@@ -105,10 +100,10 @@ class CartPoleEnv(Env):
 
     def _get_ob(self):
         x, x_dot, theta, theta_dot = self.state
-        if  self.PO:
-            return np.array([x, theta]) #POMDP
-        else:
-            return np.array([x, x_dot, theta, theta_dot])
+        mask = np.ones(4)
+        mask[np.random.choice(4,self.mask_num)] = 0.0
+        print(mask)
+        return np.array([x, x_dot, theta, theta_dot])*mask
 
     def reset(self):
         self.state = np.random.uniform(low=-0.05, high=0.05, size=(4,))
