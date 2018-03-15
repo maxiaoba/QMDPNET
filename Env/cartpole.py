@@ -102,7 +102,6 @@ class CartPoleEnv(Env):
         x, x_dot, theta, theta_dot = self.state
         mask = np.ones(4)
         mask[np.random.choice(4,self.mask_num)] = 0.0
-        print(mask)
         return np.array([x, x_dot, theta, theta_dot])*mask
 
     def reset(self):
