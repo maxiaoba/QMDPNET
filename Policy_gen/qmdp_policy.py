@@ -12,7 +12,7 @@ from rllab.core.serializable import Serializable
 from rllab.misc import special
 from rllab.misc.overrides import overrides
 import joblib
-from qmdp_net import QMDPNetwork
+from Policy_gen.qmdp_net import QMDPNetwork
 import time
 
 class QMDPPolicy(StochasticPolicy, LayersPowered, Serializable):
@@ -20,6 +20,7 @@ class QMDPPolicy(StochasticPolicy, LayersPowered, Serializable):
             self,
             name,
             env_spec,
+            qmdp_param,
             feature_network=None,
             state_include_action=True,
     ):
@@ -115,7 +116,7 @@ class QMDPPolicy(StochasticPolicy, LayersPowered, Serializable):
 
             self.input_dim = input_dim
             self.action_dim = action_dim
-            self.hidden_dim = qmdp_param['state_num']
+            self.hidden_dim = qmdp_param['num_state']
 
             self.prev_actions = None
             self.prev_hiddens = None

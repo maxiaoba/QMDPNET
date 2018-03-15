@@ -7,7 +7,7 @@ from sandbox.rocky.tf.core.parameterized import Parameterized
 from sandbox.rocky.tf.core.layers_powered import LayersPowered
 import pickle, argparse, os
 from utils.dotdict import dotdict
-from qmdp_layer import FilterLayer, PlannerLayer
+from Policy_gen.qmdp_layer import FilterLayer, PlannerLayer
 import joblib
 
 class QMDPNetwork(object):

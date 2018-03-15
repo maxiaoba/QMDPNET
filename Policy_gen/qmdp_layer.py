@@ -9,7 +9,7 @@ from itertools import chain
 from inspect import getargspec
 from difflib import get_close_matches
 from warnings import warn
-from qmdp_sublayer import PlannerNet, FilterNet
+from Policy_gen.qmdp_sublayer import PlannerNet, FilterNet
 from sandbox.rocky.tf.core.layers import Layer, MergeLayer
 
 class FilterLayer(Layer):
@@ -31,8 +31,8 @@ class FilterLayer(Layer):
         # pre-run the step method to initialize the normalization parameters
         # self.build_placeholders()
 
-        self.h0 = self.add_param(tf.constant_initializer(1.0/self.num_state), (self.num_state,), name="h0", trainable=False, regularizable=False)
-        self.info = self.add_param(tf.constant_initializer(1.0), (self.info_len,), name="info", trainable=False, regularizable=False)
+        self.h0 = self.add_param(tf.constant_initializer(1.0/self.num_state), (self.num_state,), name="h0", trainable=True, regularizable=False)
+        self.info = self.add_param(tf.constant_initializer(0.1), (self.info_len,), name="info", trainable=True, regularizable=False)
 
         self.filternet = FilterNet(qmdp_param, parent_layer=self)
         h_dummy = tf.placeholder(dtype=tf.float32, shape=(None, self.num_units), name="h_dummy")
@@ -48,7 +48,11 @@ class FilterLayer(Layer):
         act_in = tf.to_int32(act_in)
         obs_in = tf.to_float(obs_in)
 
-        Z = self.filternet.f_Z.step(self.info)
+        n_batches = tf.shape(x)[0]
+        info = self.info
+        info = tf.tile(tf.reshape(info, (1,self.info_len)),(n_batches,1))
+        info = tf.to_float(info)
+        Z = self.filternet.f_Z.step(info)
 
         b = self.filternet.beliefupdate(Z, prev_b, act_in, obs_in)
 
@@ -127,7 +131,8 @@ class PlannerLayer(Layer):
         self.num_action = qmdp_param['num_action']
         # pre-run the step method to initialize the normalization parameters
         # self.build_placeholders()
-        self.R0 = self.add_param(tf.constant_initializer(1.0), (self.num_state*self.num_action,), name="R0", trainable=False, regularizable=False)
+        self.R0 = self.add_param(tf.constant_initializer(0.1), (self.num_state*self.num_action,), name="R0", trainable=True, regularizable=False)
+        self.V0 = self.add_param(tf.constant_initializer(0.1), (self.num_state), name="V0", trainable=True, regularizable=False)
 
         self.plannernet = PlannerNet(qmdp_param, parent_layer=self)
         h_dummy = tf.placeholder(dtype=tf.float32, shape=(None, self.num_units), name="h_dummy")
@@ -139,12 +144,16 @@ class PlannerLayer(Layer):
     def step(self, h):
         b = tf.reshape(h,tf.stack([-1,self.num_state]))
 
-        n_batches = tf.shape(hprev)[0]
+        n_batches = tf.shape(h)[0]
         R0 = self.R0
         R0 = tf.tile(tf.reshape(R0, (1,self.num_state*self.num_action)),(n_batches,1))
         R0 = tf.to_float(R0)
 
-        Q, _, _ = self.plannernet.VI(R0)
+        V0 = self.V0
+        V0 = tf.tile(tf.reshape(V0, (1,self.num_state)),(n_batches,1))
+        V0 = tf.to_float(V0)
+
+        Q, _, _ = self.plannernet.VI(R0,V0)
 
         action_pred = self.plannernet.policy(Q, b)
 

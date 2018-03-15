@@ -12,7 +12,7 @@ class PlannerNet(object):
         self.f_pi = F_pi(self.num_action, self.num_action, parent_layer=parent_layer)
         self.f_T = F_T(self.num_state,self.num_action, name="planner_net", parent_layer=parent_layer)
 
-    def VI(self, R0):
+    def VI(self, R0, V0):
         """
         builds neural network implementing value iteration. this is the first part of planner module. Fixed through time.
         inputs: map (batch x N x N) and goal(batch)
@@ -27,7 +27,8 @@ class PlannerNet(object):
 
         # initialize value image
         # V = tf.zeros(map.get_shape().as_list() + [1])
-        V = tf.zeros((tf.shape(R0).as_list()[0],self.num_state))
+        # V = tf.zeros((tf.shape(R0)[0],self.num_state))
+        V = V0
         Q = None
 
         # repeat value iteration K times
@@ -70,7 +71,7 @@ class FilterNet(object):
         self.f_T = F_T(self.num_state,self.num_action, name="filter_net", parent_layer=parent_layer)
         self.f_A = F_A()
         self.f_O = F_O(qmdp_param['obs_len'], parent_layer=parent_layer)
-        self.f_Z = F_Z(qmdp_param['info_len'],parent_layer=parent_layer)
+        self.f_Z = F_Z(qmdp_param['info_len'], self.num_state, parent_layer=parent_layer)
 
     def beliefupdate(self, Z, b, action, local_obs):
         """
@@ -134,18 +135,19 @@ class F_T(object):
     def step(self, input):
         out = self.fclayers.step(input)
         out = tf.reshape(out, [-1,self.num_state,self.num_action])
-        out = tf.nn.softmax(out,axis=1)
+        out = tf.nn.softmax(out,dim=1)
         return out
 
 class F_Z(object):
-    def __init__(self, info_len,parent_layer=None):
+    def __init__(self, info_len, num_state, parent_layer=None):
         # self.convlayers = ConvLayers(1, np.array([[3, 150, 'lin'], [1, 17, 'sig']]), "Z_conv", parent_layer=parent_layer)
         self.num_obs = 17
+        self.num_state = num_state
         self.fclayers = FcLayers(info_len,np.array([[3*num_state*self.num_obs, 'relu'], [num_state*self.num_obs, 'sig']]), "Z_fc",parent_layer=parent_layer)
     def step(self, info):
         Z = self.fclayers.step(info)
         Z = tf.reshape(Z, [-1,self.num_state,self.num_obs])
-        Z = tf.nn.softmax(Z,axis=2)
+        Z = tf.nn.softmax(Z,dim=2)
         return Z
 
 class F_A(object):
