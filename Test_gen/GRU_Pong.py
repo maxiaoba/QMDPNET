@@ -25,7 +25,7 @@ import dill
 
 
 
-env = TfEnv(AtariEnv(5,carnival))
+env = TfEnv(AtariEnv(5,'carnival'))
 qmdp_param = {}
 qmdp_param['K'] = 30
 qmdp_param['obs_len'] = env.spec.observation_space.flat_dim
