@@ -52,7 +52,7 @@ logger.set_snapshot_dir(log_dir)
 logger.set_snapshot_mode("gaplast")
 logger.set_snapshot_gap(1000)
 logger.set_log_tabular_only(False)
-logger.push_prefix("[%s] " % game_name+'_'+str(mask_num))
+logger.push_prefix("[%s] " % (game_name+'_'+str(mask_num)))
 
 from Algo import parallel_sampler
 parallel_sampler.initialize(n_parallel=1)
