@@ -73,7 +73,7 @@ with tf.Session() as sess:
         policy=policy,
         baseline=baseline,
         batch_size=2048,#2*env._wrapped_env.params['traj_limit'],
-        max_path_length=100,
+        max_path_length=200,
         n_itr=10000,
         discount=0.95,
         step_size=0.01,

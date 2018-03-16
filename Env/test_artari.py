@@ -1,7 +1,7 @@
 from atari import AtariEnv
 from sandbox.rocky.tf.envs.base import TfEnv
 
-env = TfEnv(AtariEnv(5))
+env = TfEnv(AtariEnv(5,'carnival'))
 
 env.reset()
 env.render()

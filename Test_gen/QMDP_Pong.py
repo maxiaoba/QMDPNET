@@ -25,7 +25,7 @@ import dill
 
 
 
-env = TfEnv(AtariEnv())
+env = TfEnv(AtariEnv(5,'carnival'))
 qmdp_param = {}
 qmdp_param['K'] = 30
 qmdp_param['obs_len'] = env.spec.observation_space.flat_dim
@@ -34,7 +34,7 @@ qmdp_param['num_state'] = 32 #env.spec.observation_space.flat_dim
 qmdp_param['info_len'] = qmdp_param['num_state']
 
 # log_dir = "./Data/FixMapStartState"
-log_dir = "./Data/testPong"
+log_dir = "./Data/testcarnival"
 
 tabular_log_file = osp.join(log_dir, "progress.csv")
 text_log_file = osp.join(log_dir, "debug.log")
@@ -73,7 +73,7 @@ with tf.Session() as sess:
         policy=policy,
         baseline=baseline,
         batch_size=2048,#2*env._wrapped_env.params['traj_limit'],
-        max_path_length=100,
+        max_path_length=200,
         n_itr=10000,
         discount=0.95,
         step_size=0.01,
