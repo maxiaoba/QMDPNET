@@ -37,7 +37,7 @@ qmdp_param['num_state'] = 32 #env.spec.observation_space.flat_dim
 qmdp_param['info_len'] = qmdp_param['num_state']
 
 # log_dir = "./Data/FixMapStartState"
-log_dir = "./Data/qmdp_"+game_name+'_'+str(mask_num)
+log_dir = "./Data/qmdpk3_"+game_name+'_'+str(mask_num)
 
 tabular_log_file = osp.join(log_dir, "progress.csv")
 text_log_file = osp.join(log_dir, "debug.log")
