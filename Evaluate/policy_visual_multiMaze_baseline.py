@@ -7,13 +7,13 @@ import matplotlib as mpl
 
 sess = tf.Session()
 sess.__enter__()
-log_dir = "../MultiEnv/Data/Itr1e4/QMDP/obs_1goal20step0stay_1_kdist_01_keep1.pkl"
+log_dir = "../MultiEnv/Data/Itr1e4/Baseline/b_obs_1goal20step0stay_1_kdist_01_keep1.pkl"
 data = joblib.load(log_dir)
 # env = data['env']
 agent = data['policy']
 max_path_length = 400
 
-path = "../MultiEnv/Data/Itr1e4/QMDP/keep1_path/"
+path = "../MultiEnv/Data/Itr1e4/Baseline/keep1_path/"
 
 env = data['env']
 env._wrapped_env.generate_grid=True
@@ -34,7 +34,7 @@ for i in range(10):
     env._wrapped_env.generate_b0_start_goal=False
 
     o = env.reset()
-    agent.reset(env._wrapped_env.env_img, env._wrapped_env.goal_img, env._wrapped_env.b0_img)
+    agent.reset()
     path_length = 0
 
     env_img = env._wrapped_env.env_img
@@ -53,7 +53,7 @@ for i in range(10):
         next_o, r, d, env_info = env.step(a)
         path_length += 1
         if d:
-            break
+         	break
         o = next_o
 
         state = env._wrapped_env.state
@@ -73,7 +73,7 @@ for i in range(10):
     img = pyplot.imshow(show_img,interpolation='nearest',
                         cmap = cmap,norm=norm)
     
-    fig.savefig(path+'QMDP_'+str(i)+'.png')
+    fig.savefig(path+'Baseline_'+str(i)+'.png')
     pyplot.close(fig)
 
 

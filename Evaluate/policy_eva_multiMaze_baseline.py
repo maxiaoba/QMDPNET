@@ -48,7 +48,7 @@ env.reset()
 env._wrapped_env.generate_grid=False
 env._wrapped_env.generate_b0_start_goal=False
 
-log_dir = "../MultiEnv/Data/Baseline"
+log_dir = "../MultiEnv/Data/Itr1e4/Baseline"
 
 names = []
 for policy in os.listdir(log_dir):
@@ -66,9 +66,9 @@ for name in names:
     success = 0
     path_lengths = np.array([])
 
-    env_path = "../MultiEnv/"
-    for i in range(20):
-        data = joblib.load(env_path+'/TestEnv'+'/env_'+str(i)+'.pkl')
+    env_path = "../MultiEnv/Data"
+    for i in range(50):
+        data = joblib.load(env_path+'/TestEnv2'+'/env_'+str(i)+'.pkl')
         env_ref = data['env']
         grid = env_ref._wrapped_env.grid
         b0 = env_ref._wrapped_env.b0

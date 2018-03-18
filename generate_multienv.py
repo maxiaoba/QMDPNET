@@ -36,7 +36,7 @@ params['traj_limit'] = 4 * (params['grid_n'] * params['grid_m']) # 4 * (params['
 params['R_step'] = [params['R_step']] * params['num_action']
 params['R_step'][params['stayaction']] = params['R_stay']
 
-log_dir = "./MultiEnv"
+log_dir = "./MultiEnv/Data"
 
 # generate TrainENV file
 # TrainEnvNum = 500
@@ -53,7 +53,7 @@ log_dir = "./MultiEnv"
 #     plot_env(env,save=True,path=log_dir+'/TrainEnv'+'/Map_'+str(i)+'.pdf')
 
 # generate TestENV file
-TestEnvNum = 20
+TestEnvNum = 50
 env = TfEnv(GridBase(params))
 env._wrapped_env.generate_grid=True
 env._wrapped_env.generate_b0_start_goal=True
@@ -63,5 +63,5 @@ for i in range(TestEnvNum):
     params = dict(
         env=env,
     )
-    joblib.dump(params,log_dir+'/TestEnv'+'/env_'+str(i)+'.pkl')
-    plot_env(env,save=True,path=log_dir+'/TestEnv'+'/Map_'+str(i)+'.pdf')
+    joblib.dump(params,log_dir+'/TestEnv2'+'/env_'+str(i)+'.pkl')
+    plot_env(env,save=True,path=log_dir+'/TestEnv2'+'/Map_'+str(i)+'.pdf')
