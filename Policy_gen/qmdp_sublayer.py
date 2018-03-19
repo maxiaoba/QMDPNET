@@ -147,7 +147,8 @@ class F_Z(object):
     def step(self, info):
         Z = self.fclayers.step(info)
         Z = tf.reshape(Z, [-1,self.num_state,self.num_obs])
-        Z = tf.nn.softmax(Z,dim=2)
+        #Z = tf.nn.softmax(Z,dim=2)
+        Z = tf.nn.softmax(Z) #default is -1=2, if use dim = 2, cause issues at some tf version
         return Z
 
 class F_A(object):
