@@ -1,50 +1,59 @@
-from sandbox.rocky.tf.policies.gaussian_mlp_policy import GaussianMLPPolicy
-from sandbox.rocky.tf.envs.base import TfEnv
-import joblib
 import tensorflow as tf
+import joblib
+from matplotlib import pyplot as plt
 import numpy as np
-import matplotlib.pyplot as plt
+import os
+import csv
 
-sess = tf.Session()
-sess.__enter__()
-with tf.variable_scope("qmdp_net"):
-    obj_qmdp = joblib.load('./Data/Test2/params.pkl')
-    rewards_qmdp = obj_qmdp['rewards']
-with tf.variable_scope("gru_net"):
-    obj_gru = joblib.load('./Data/Test_gru/params.pkl')
-    rewards_gru = obj_gru['rewards']
+from statsmodels.nonparametric.smoothers_lowess import lowess
 
+log_dir = "../Test_gen/Data/CSV/"
+games = ["carnival","skiing","space_invaders","star_gunner"]
+policies = ["qmdpk3","qmdp","gru"]
+colors = {"gru":"green","qmdp":"blue","qmdpk3":"red"}
+occs = [5]
 
-AvgRewards_qmdp = rewards_qmdp['AverageReturn']
-MinRewards_qmdp = rewards_qmdp['MinReturn']
-MaxRewards_qmdp = rewards_qmdp['MaxReturn']
-AvgDisRewards_qmdp = rewards_qmdp['average_discounted_return']  
+font = {'family' : 'normal',
+        'weight' : 'normal',
+        'size'   : 15}
 
-AvgRewards_gru = rewards_gru['AverageReturn']
-MinRewards_gru = rewards_gru['MinReturn']
-MaxRewards_gru = rewards_gru['MaxReturn']
-AvgDisRewards_gru = rewards_gru['average_discounted_return']
+plt.rc('font', **font)
 
-x = range(len(AvgRewards_qmdp))
+plt.rc('xtick', labelsize=15) 
+plt.rc('ytick', labelsize=15) 
 
-fig = plt.figure(1)
-qmdp_line, = plt.plot(x, AvgRewards_qmdp, label='QMDP-Net')
-gru_line, = plt.plot(x, AvgRewards_gru, label='GRU-Net')
-plt.legend(handles=[qmdp_line,gru_line])
-plt.xlabel('Iteration')
-plt.ylabel('Average Undiscounted Path Reward')
-# plt.show()
-fig.savefig('Reward.pdf')
-plt.close(fig)
+for occ in occs:
+	for game in games:
+		print(game)
+		fig = plt.figure(1,figsize=(6,6))
+		lines = []
+		for policy in policies:
+			name = policy+'_'+game+'_'+str(occ)
+			print(name)
+			reader = csv.DictReader(open(log_dir+name+'.csv'))
+			AvgRewards = []
+			MinRewards = []
+			MaxRewards = []
+			AvgDisRewards = []
+			for row in reader:
+				# print(row)
+				AvgRewards.append(row['AverageReturn'])
+				MinRewards.append(row['MinReturn'])
+				MaxRewards.append(row['MaxReturn'])
+				AvgDisRewards.append(row['AverageDiscountedReturn'])
+			x = range(len(AvgRewards))
 
-fig = plt.figure(2)
-qmdp_line, = plt.plot(x, AvgDisRewards_qmdp, label='QMDP-Net')
-gru_line, = plt.plot(x, AvgDisRewards_gru, label='GRU-Net')
-plt.legend(handles=[qmdp_line,gru_line])
-plt.xlabel('Iteration')
-plt.ylabel('Average Discounted Path Reward')
-# plt.show()
-fig.savefig('Reward_dis.pdf')
-plt.close(fig)
+			result = lowess(AvgRewards,x)
+			AvgRewards_smooth = result[:,1]
+
+			line, = plt.plot(x, AvgRewards_smooth, label=name,color=colors[policy])
+			lines.append(line)
+		plt.legend(handles=lines)
+		plt.xlabel('Iteration')
+		plt.ylabel('Average Undiscounted Path Reward')
+		# plt.show()
+		fig.savefig(log_dir+game+'_'+str(occ)+'.pdf')
+		plt.close(fig)
+
 
 

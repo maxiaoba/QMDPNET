@@ -80,7 +80,7 @@ with tf.Session() as sess:
         n_itr=10000,
         discount=0.95,
         step_size=0.01,
-        record_rewards=True,
+        record_env=False,
         transfer=False,
     )
 

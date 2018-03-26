@@ -22,8 +22,7 @@ class TRPO_t(NPO):
             transfer=True,
             optimizer=None,
             optimizer_args=None,
-            record_rewards=True,
-            rewards=None,
+            record_env=True
             **kwargs):
         self.transfer = transfer
         if optimizer is None:
@@ -31,17 +30,7 @@ class TRPO_t(NPO):
                 optimizer_args = dict()
             optimizer = ConjugateGradientOptimizer(**optimizer_args)
 
-        self.record_rewards = record_rewards
-        if self.record_rewards:
-            if rewards is None: #create empty dict
-                self.rewards = {}
-                self.rewards['average_discounted_return'] = []
-                self.rewards['AverageReturn'] = []
-                self.rewards['StdReturn'] = []
-                self.rewards['MaxReturn'] = []
-                self.rewards['MinReturn'] = []
-            else:
-                self.rewards = rewards
+        self.record_env = record_env
         super(TRPO_t, self).__init__(optimizer=optimizer, sampler_cls=QMDPSampler,sampler_args=dict(),**kwargs)
 
     @overrides
@@ -67,23 +56,6 @@ class TRPO_t(NPO):
                 logger.log("Processing samples...")
                 samples_data = self.process_samples(itr, paths)
 
-                if self.record_rewards:
-                    logger.log("recording rewards...")
-                    undiscounted_returns = [sum(path["rewards"]) for path in paths]
-                    average_discounted_return = np.mean([path["returns"][0] for path in paths])
-                    AverageReturn = np.mean(undiscounted_returns)
-                    StdReturn = np.std(undiscounted_returns)
-                    MaxReturn = np.max(undiscounted_returns)
-                    MinReturn = np.min(undiscounted_returns)
-                    self.rewards['average_discounted_return'].append(average_discounted_return)
-                    self.rewards['AverageReturn'].append(AverageReturn)
-                    self.rewards['StdReturn'].append(StdReturn)
-                    self.rewards['MaxReturn'].append(MaxReturn)
-                    self.rewards['MinReturn'].append(MinReturn)
-                    print("AverageReturn: ",AverageReturn)
-                    print("MaxReturn: ",MaxReturn)
-                    print("MinReturn: ",MinReturn)
-
                 logger.log("Logging diagnostics...")
                 self.log_diagnostics(paths)
                 logger.log("Optimizing policy...")
@@ -108,18 +80,16 @@ class TRPO_t(NPO):
 
     @overrides
     def get_itr_snapshot(self, itr):
-        if self.record_rewards:
+        if self.record_env:
             return dict(
                 itr=itr,
                 policy=self.policy,
                 baseline=self.baseline,
                 env=self.env,
-                rewards=self.rewards,
             )
         else:
             return dict(
                 itr=itr,
                 policy=self.policy,
                 baseline=self.baseline,
-                env=self.env,
             )

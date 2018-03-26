@@ -32,8 +32,7 @@ class VPG_t(BatchPolopt, Serializable):
             optimizer=None,
             optimizer_args=None,
             transfer=True,
-            record_rewards=True,
-            rewards=None,
+            record_env=True
             **kwargs):
         Serializable.quick_init(self, locals())
         if optimizer is None:
@@ -50,17 +49,7 @@ class VPG_t(BatchPolopt, Serializable):
         self.opt_info = None
 
         self.transfer = transfer
-        self.record_rewards = record_rewards
-        if self.record_rewards:
-            if rewards is None: #create empty dict
-                self.rewards = {}
-                self.rewards['average_discounted_return'] = []
-                self.rewards['AverageReturn'] = []
-                self.rewards['StdReturn'] = []
-                self.rewards['MaxReturn'] = []
-                self.rewards['MinReturn'] = []
-            else:
-                self.rewards = rewards
+        self.record_env = record_env
         self.env_path = env_path
         self.env_num = env_num
         self.env_keep_itr = env_keep_itr
@@ -201,20 +190,6 @@ class VPG_t(BatchPolopt, Serializable):
                 logger.log("Processing samples...")
                 samples_data = self.process_samples(itr, paths)
 
-                if self.record_rewards:
-                    logger.log("recording rewards...")
-                    undiscounted_returns = [sum(path["rewards"]) for path in paths]
-                    average_discounted_return = np.mean([path["returns"][0] for path in paths])
-                    AverageReturn = np.mean(undiscounted_returns)
-                    StdReturn = np.std(undiscounted_returns)
-                    MaxReturn = np.max(undiscounted_returns)
-                    MinReturn = np.min(undiscounted_returns)
-                    self.rewards['average_discounted_return'].append(average_discounted_return)
-                    self.rewards['AverageReturn'].append(AverageReturn)
-                    self.rewards['StdReturn'].append(StdReturn)
-                    self.rewards['MaxReturn'].append(MaxReturn)
-                    self.rewards['MinReturn'].append(MinReturn)
-
                 logger.log("Logging diagnostics...")
                 self.log_diagnostics(paths)
                 logger.log("Optimizing policy...")
@@ -239,18 +214,16 @@ class VPG_t(BatchPolopt, Serializable):
 
     @overrides
     def get_itr_snapshot(self, itr):
-        if self.record_rewards:
+        if self.record_env:
             return dict(
                 itr=itr,
                 policy=self.policy,
                 baseline=self.baseline,
                 env=self.env,
-                rewards=self.rewards,
             )
         else:
             return dict(
                 itr=itr,
                 policy=self.policy,
                 baseline=self.baseline,
-                env=self.env,
             )
