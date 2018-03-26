@@ -22,7 +22,7 @@ class TRPO_t(NPO):
             transfer=True,
             optimizer=None,
             optimizer_args=None,
-            record_env=True
+            record_env=True,
             **kwargs):
         self.transfer = transfer
         if optimizer is None:
