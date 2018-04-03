@@ -126,12 +126,19 @@ class F_T(object):
     def __init__(self, num_state, num_action, name, parent_layer=None):
         self.num_state = num_state
         self.num_action = num_action
-        self.fclayers = FcLayers(num_state,np.array([[num_state*num_action, 'lin']]), name+"T_fc",parent_layer=parent_layer)
-
+        w_std = 1.0 / np.sqrt(float(num_state))
+        w_mean = 0.0
+        dtype = tf.float32
+        input_size = num_state
+        output_size = num_state*num_action
+        initializer = tf.truncated_normal_initializer(mean=w_mean, stddev=w_std, dtype=dtype)
+        self.w = parent_layer.add_param_plain(initializer, [input_size, output_size], name='w_'+name, trainable=True, regularizable=False)
     def step(self, input):
-        out = self.fclayers.step(input)
+        weight = tf.reshape(self.w, [self.num_state, self.num_state, self.num_action])
+        weight = tf.nn.softmax(weight, dim=1)
+        weight = tf.reshape(weight, [self.num_state, self.num_state*self.num_action])
+        out = tf.matmul(input, weight)
         out = tf.reshape(out, [-1,self.num_state,self.num_action])
-        out = tf.nn.softmax(out,dim=1)
         return out
 
 class F_Z(object):

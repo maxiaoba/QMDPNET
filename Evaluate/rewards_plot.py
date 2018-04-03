@@ -8,10 +8,10 @@ import csv
 from statsmodels.nonparametric.smoothers_lowess import lowess
 
 log_dir = "../Test_gen/Data/CSV/"
-games = ["carnival","skiing","space_invaders","star_gunner"]
-policies = ["qmdpk3","qmdp","gru"]
-colors = {"gru":"green","qmdp":"blue","qmdpk3":"red"}
-occs = [5]
+games = ["carnival","space_invaders","star_gunner"]
+policies = ["qmdpk3","qmdpk3_2","gru"]
+colors = {"gru":"green","qmdp":"blue","qmdpk3":"red","qmdpk3_2":"orange"}
+occs = [20]
 
 font = {'family' : 'normal',
         'weight' : 'normal',

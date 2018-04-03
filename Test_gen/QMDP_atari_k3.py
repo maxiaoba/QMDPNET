@@ -34,6 +34,7 @@ qmdp_param['K'] = 3
 qmdp_param['obs_len'] = env.spec.observation_space.flat_dim
 qmdp_param['num_action'] = env.spec.action_space.flat_dim
 qmdp_param['num_state'] = 32 #env.spec.observation_space.flat_dim
+qmdp_param['num_obs'] = 17
 qmdp_param['info_len'] = qmdp_param['num_state']
 
 # log_dir = "./Data/FixMapStartState"

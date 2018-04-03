@@ -70,8 +70,8 @@ class FilterNet(object):
         self.num_state = qmdp_param['num_state']
         self.f_T = F_T(self.num_state,self.num_action, name="filter_net", parent_layer=parent_layer)
         self.f_A = F_A()
-        self.f_O = F_O(qmdp_param['obs_len'], parent_layer=parent_layer)
-        self.f_Z = F_Z(qmdp_param['info_len'], self.num_state, parent_layer=parent_layer)
+        self.f_O = F_O(qmdp_param['obs_len'], qmdp_param['num_obs'], parent_layer=parent_layer)
+        self.f_Z = F_Z(qmdp_param['info_len'],qmdp_param['num_obs'], self.num_state, parent_layer=parent_layer)
 
     def beliefupdate(self, Z, b, action, local_obs):
         """
@@ -126,22 +126,41 @@ class F_R(object):
         R = tf.reshape(R, [-1,self.num_state,self.num_action])
         return R
 
+# class F_T(object):
+#     def __init__(self, num_state, num_action, name, parent_layer=None):
+#         self.num_state = num_state
+#         self.num_action = num_action
+#         self.fclayers = FcLayers(num_state,np.array([[num_state*num_action, 'lin']]), name+"T_fc",parent_layer=parent_layer)
+
+#     def step(self, input):
+#         out = self.fclayers.step(input)
+#         out = tf.reshape(out, [-1,self.num_state,self.num_action])
+#         out = tf.nn.softmax(out,dim=1)
+#         return out
+# above implementation is wrong, should softmax on the weight
 class F_T(object):
     def __init__(self, num_state, num_action, name, parent_layer=None):
         self.num_state = num_state
         self.num_action = num_action
-        self.fclayers = FcLayers(num_state,np.array([[num_state*num_action, 'lin']]), name+"T_fc",parent_layer=parent_layer)
-
+        w_std = 1.0 / np.sqrt(float(num_state))
+        w_mean = 0.0
+        dtype = tf.float32
+        input_size = num_state
+        output_size = num_state*num_action
+        initializer = tf.truncated_normal_initializer(mean=w_mean, stddev=w_std, dtype=dtype)
+        self.w = parent_layer.add_param_plain(initializer, [input_size, output_size], name='w_'+name, trainable=True, regularizable=False)
     def step(self, input):
-        out = self.fclayers.step(input)
+        weight = tf.reshape(self.w, [self.num_state, self.num_state, self.num_action])
+        weight = tf.nn.softmax(weight, dim=1)
+        weight = tf.reshape(weight, [self.num_state, self.num_state*self.num_action])
+        out = tf.matmul(input, weight)
         out = tf.reshape(out, [-1,self.num_state,self.num_action])
-        out = tf.nn.softmax(out,dim=1)
         return out
 
 class F_Z(object):
-    def __init__(self, info_len, num_state, parent_layer=None):
+    def __init__(self, info_len, num_obs, num_state, parent_layer=None):
         # self.convlayers = ConvLayers(1, np.array([[3, 150, 'lin'], [1, 17, 'sig']]), "Z_conv", parent_layer=parent_layer)
-        self.num_obs = 17
+        self.num_obs = num_obs
         self.num_state = num_state
         self.fclayers = FcLayers(info_len,np.array([[3*num_state*self.num_obs, 'relu'], [num_state*self.num_obs, 'sig']]), "Z_fc",parent_layer=parent_layer)
     def step(self, info):
@@ -161,9 +180,8 @@ class F_A(object):
         return action
 
 class F_O(object):
-    def __init__(self, obs_len, parent_layer=None):
-        self.num_obs = 17
-        self.fclayers = FcLayers(obs_len, np.array([[self.num_obs, 'tanh'], [self.num_obs, 'smax']]), names="O_fc", parent_layer=parent_layer)
+    def __init__(self, obs_len, num_obs,parent_layer=None):
+        self.fclayers = FcLayers(obs_len, np.array([[num_obs, 'tanh'], [num_obs, 'smax']]), names="O_fc", parent_layer=parent_layer)
     def step(self, local_obs):
         w_O = self.fclayers.step(local_obs)
         return w_O

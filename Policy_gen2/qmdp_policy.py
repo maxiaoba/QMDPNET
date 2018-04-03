@@ -109,8 +109,8 @@ class QMDPPolicy(StochasticPolicy, LayersPowered, Serializable):
                 # [self.prob_network._l_output_flat.plannernet.printQ]
                 [
                     # self.prob_network._l_output_flat.plannernet.f_pi.fclayers.fclayers[0].w,
-                    self.prob_network._l_output_flat.plannernet.q,
-                    self.prob_network._l_output_flat.plannernet.action_pred,
+                    self.prob_network._l_output_flat.R0,
+                    self.prob_network._l_gru.z_os
                 ]
             )
 
@@ -206,9 +206,9 @@ class QMDPPolicy(StochasticPolicy, LayersPowered, Serializable):
 
         probs, hidden_vec = self.f_step_prob(all_input, self.prev_hiddens)
         # print("probs: ",probs)
-        # q, action_pred = self.debug(all_input, self.prev_hiddens)
-        # print('w: ',w)
-        # print("q: ",q)
+        # R0,z_os = self.debug(all_input, self.prev_hiddens)
+        # print('R0: ',R0)
+        # print("z_os: ",z_os)
         # sess = tf.get_default_session()
         # print('q*w: ',sess.run(tf.matmul(q,w)))
         # print("action_pred: ",action_pred)
