@@ -10,7 +10,7 @@ class PlannerNet(object):
         self.num_state = qmdp_param['num_state']
         self.f_R = F_R(self.num_state,self.num_action, parent_layer=parent_layer)
         self.f_pi = F_pi(self.num_action, self.num_action, parent_layer=parent_layer)
-        self.f_T = F_T(self.num_state,self.num_action, name="planner_net", parent_layer=parent_layer)
+        self.f_T = F_T_planner(self.num_state,self.num_action, name="planner_net", parent_layer=parent_layer)
 
     def VI(self, R0, V0):
         """
@@ -68,7 +68,7 @@ class FilterNet(object):
         # self.params = params
         self.num_action = qmdp_param['num_action']
         self.num_state = qmdp_param['num_state']
-        self.f_T = F_T(self.num_state,self.num_action, name="filter_net", parent_layer=parent_layer)
+        self.f_T = F_T_filter(self.num_state,self.num_action, name="filter_net", parent_layer=parent_layer)
         self.f_A = F_A()
         self.f_O = F_O(qmdp_param['obs_len'], qmdp_param['num_obs'], parent_layer=parent_layer)
         self.f_Z = F_Z(qmdp_param['info_len'],qmdp_param['num_obs'], self.num_state, parent_layer=parent_layer)
@@ -138,7 +138,7 @@ class F_R(object):
 #         out = tf.nn.softmax(out,dim=1)
 #         return out
 # above implementation is wrong, should softmax on the weight
-class F_T(object):
+class F_T_filter(object):
     def __init__(self, num_state, num_action, name, parent_layer=None):
         self.num_state = num_state
         self.num_action = num_action
@@ -152,6 +152,25 @@ class F_T(object):
     def step(self, input):
         weight = tf.reshape(self.w, [self.num_state, self.num_state, self.num_action])
         weight = tf.nn.softmax(weight, dim=1)
+        weight = tf.reshape(weight, [self.num_state, self.num_state*self.num_action])
+        out = tf.matmul(input, weight)
+        out = tf.reshape(out, [-1,self.num_state,self.num_action])
+        return out
+
+class F_T_planner(object):
+    def __init__(self, num_state, num_action, name, parent_layer=None):
+        self.num_state = num_state
+        self.num_action = num_action
+        w_std = 1.0 / np.sqrt(float(num_state))
+        w_mean = 0.0
+        dtype = tf.float32
+        input_size = num_state
+        output_size = num_state*num_action
+        initializer = tf.truncated_normal_initializer(mean=w_mean, stddev=w_std, dtype=dtype)
+        self.w = parent_layer.add_param_plain(initializer, [input_size, output_size], name='w_'+name, trainable=True, regularizable=False)
+    def step(self, input):
+        weight = tf.reshape(self.w, [self.num_state, self.num_state, self.num_action])
+        weight = tf.nn.softmax(weight, dim=0)
         weight = tf.reshape(weight, [self.num_state, self.num_state*self.num_action])
         out = tf.matmul(input, weight)
         out = tf.reshape(out, [-1,self.num_state,self.num_action])
