@@ -38,7 +38,7 @@ def main():
     # log_path = "./Data/a2cTest/"
     logger.configure(dir=log_path)
     train(args.env, N_itr=args.N_itr, seed=args.seed,
-        policy=args.policy, lrschedule=args.lrschedule, num_env=16, log_path=log_path, save_interval=save_interval)
+        policy=args.policy, lrschedule=args.lrschedule, num_env=16, log_path=log_path, save_interval=args.save_interval)
 
 if __name__ == '__main__':
     main()
