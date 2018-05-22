@@ -9,8 +9,8 @@ from statsmodels.nonparametric.smoothers_lowess import lowess
 
 log_dir = "../Test_gen/Data/CSV/"
 games = ["carnival","star_gunner"]
-policies = ["qmdpk3","qmdpk3_2","gru","qmdpk32","qmdpk32_2","qmdpk33","qmdpk33_2"]
-colors = {"gru":"green","qmdp":"blue","qmdpk3":"red","qmdpk3_2":"orange","qmdpk32":"black","qmdpk32_2":"purple","qmdpk33":"black","qmdpk33_2":"purple"}
+policies = ["gru","qmdpk32","qmdpk32_2","qmdpk33","qmdpk33_2","qmdpk34","qmdpk34_2"]
+colors = {"gru":"green","qmdp":"blue","qmdpk32":"black","qmdpk32_2":"purple","qmdpk33":"black","qmdpk33_2":"purple","qmdpk34":"red","qmdpk34_2":"orange"}
 occs = [20]
 
 font = {'family' : 'normal',
@@ -52,7 +52,7 @@ for occ in occs:
 		plt.xlabel('Iteration')
 		plt.ylabel('Average Undiscounted Path Reward')
 		# plt.show()
-		fig.savefig(log_dir+"compare_with_normalizing_fT/"+game+'_'+str(occ)+'.pdf')
+		fig.savefig(log_dir+"compare_with_normalizing_fT/"+game+'_'+str(occ)+'_2.pdf')
 		plt.close(fig)
 
 
