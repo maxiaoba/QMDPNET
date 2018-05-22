@@ -11,7 +11,7 @@ from Env.Atari.atari_wrapper import make_atari_env
 from baselines.common.cmd_util import arg_parser
 from Env import Atari
 
-def train(env_id, N_itr, seed, policy, lrschedule, num_env, log_path):
+def train(env_id, N_itr, seed, policy, lrschedule, num_env, log_path,save_interval):
     if policy == 'lstm':
         policy_fn = LstmPolicy
     elif policy == 'qmdp':
@@ -21,6 +21,7 @@ def train(env_id, N_itr, seed, policy, lrschedule, num_env, log_path):
     # env = AtariEnv(mask_num=20 ,game='carnival')
     learn(policy_fn, env, seed, N_itr=int(N_itr), lrschedule=lrschedule,
         nsteps=200,
+        save_interval=save_interval,
         save_path=log_path)#,load_path="./Data/a2cTest/a2c_1.pkl")
     env.close()
 
@@ -31,12 +32,13 @@ def main():
     parser.add_argument('--N_itr', type=int, default=int(1e6))
     parser.add_argument('--policy', help='Policy architecture', choices=['lstm','qmdp'], default='qmdp')
     parser.add_argument('--lrschedule', help='Learning rate schedule', choices=['constant', 'linear'], default='constant')
+    parser.add_argument('--save_interval', help='model save frequency', type=int, default=1000)
     args = parser.parse_args()
     log_path = "./Data/"+args.policy+"_"+args.env+"/"
     # log_path = "./Data/a2cTest/"
     logger.configure(dir=log_path)
     train(args.env, N_itr=args.N_itr, seed=args.seed,
-        policy=args.policy, lrschedule=args.lrschedule, num_env=16, log_path = log_path)
+        policy=args.policy, lrschedule=args.lrschedule, num_env=16, log_path=log_path, save_interval=save_interval)
 
 if __name__ == '__main__':
     main()
