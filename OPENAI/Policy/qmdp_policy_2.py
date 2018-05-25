@@ -2,9 +2,9 @@ import numpy as np
 import tensorflow as tf
 from baselines.a2c.utils import conv, fc, conv_to_fc, batch_to_seq, seq_to_batch, lstm, lnlstm
 from baselines.common.distributions import make_pdtype
-from Policy.qmdp_net import PlannerNet, FilterNet
+from Policy.qmdp_net_2 import PlannerNet, FilterNet
 
-class QmdpPolicy(object):
+class QmdpPolicy2(object):
 
     def __init__(self, sess, ob_space, ac_space, nbatch, nsteps, reuse=False):
         nenv = nbatch // nsteps

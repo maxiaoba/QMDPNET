@@ -6,6 +6,7 @@ from baselines.common.vec_env.vec_frame_stack import VecFrameStack
 from Alg.a2c import learn
 # from baselines.ppo2.policies import CnnPolicy, LstmPolicy, LnLstmPolicy
 from Policy.qmdp_policy import QmdpPolicy
+from Policy.qmdp_policy_2 import QmdpPolicy2
 from Policy.lstm_policy import LstmPolicy
 from Env.Atari.atari_wrapper import make_atari_env
 from baselines.common.cmd_util import arg_parser
@@ -16,6 +17,8 @@ def train(env_id, N_itr, seed, policy, lrschedule, num_env, log_path,save_interv
         policy_fn = LstmPolicy
     elif policy == 'qmdp':
         policy_fn = QmdpPolicy
+    elif policy == 'qmdp2':
+        policy_fn = QmdpPolicy2
     # env = VecFrameStack(make_atari_env(env_id, num_env, seed), 4)
     env = make_atari_env(env_id, num_env, seed)
     # env = AtariEnv(mask_num=20 ,game='carnival')
@@ -27,10 +30,10 @@ def train(env_id, N_itr, seed, policy, lrschedule, num_env, log_path,save_interv
 
 def main():
     parser = arg_parser()
-    parser.add_argument('--env', help='environment ID', default='BreakoutNoFrameskip-v4')
+    parser.add_argument('--env', help='environment ID', default='carnivalRam20-v0')
     parser.add_argument('--seed', help='RNG seed', type=int, default=0)
-    parser.add_argument('--N_itr', type=int, default=int(1e6))
-    parser.add_argument('--policy', help='Policy architecture', choices=['lstm','qmdp'], default='qmdp')
+    parser.add_argument('--N_itr', type=int, default=int(1e4))
+    parser.add_argument('--policy', help='Policy architecture', choices=['lstm','qmdp','qmdp2'], default='qmdp')
     parser.add_argument('--lrschedule', help='Learning rate schedule', choices=['constant', 'linear'], default='constant')
     parser.add_argument('--save_interval', help='model save frequency', type=int, default=1000)
     args = parser.parse_args()
