@@ -7,9 +7,11 @@ class PlannerNet(object):
         self.K = qmdp_param['K']
         self.num_action = qmdp_param['num_action']
         self.num_state = qmdp_param['num_state']
+        self.num_obs  = qmdp_param['num_obs']
         self.f_R = F_R(self.num_state, self.num_action, name)
         self.f_pi = F_pi(self.num_action, self.num_action, name)
         self.f_T = F_T_planner(self.num_state, self.num_action, name)
+        self.f_Z = F_Z_planner(self.num_state, self.num_action, self.num_obs, name)
         self.R0 = create_param(tf.constant_initializer(0.1), (self.num_state*self.num_action,), name="R0", trainable=True, regularizable=False)
         self.V0 = create_param(tf.constant_initializer(0.1), (self.num_state), name="V0", trainable=True, regularizable=False)
 
@@ -37,6 +39,8 @@ class PlannerNet(object):
         for i in range(self.K):
             Q = self.f_T.step(V)
             Q = Q + R
+            Qsao = self.f_Z.step(Q)
+            Q = tf.reduce_sum(Qsao, axis=[3], keep_dims=False)
             V = tf.reduce_max(Q, axis=[2], keep_dims=False)
 
         return Q, V, R
@@ -178,6 +182,25 @@ class F_Z(object):
         Z = tf.reshape(Z_os, [-1,self.num_state,self.num_obs])
         Z = tf.nn.softmax(Z) #default is -1=2, if use dim = 2, cause issues at some tf version
         return Z
+
+class F_Z_planner(object):
+    def __init__(self, num_state, num_action, num_obs, name):
+        self.num_state = num_state
+        self.num_action = num_action
+        self.num_obs = num_obs
+        w_std = 1.0/ np.sqrt(float(num_state*num_action))
+        w_mean = 0.0
+        dtype = tf.float32
+        input_size = num_state*num_action
+        output_size = num_state*num_action*num_obs
+        initializer = tf.truncated_normal_initializer(mean=w_mean, stddev=w_std, dtype=dtype)
+        self.w = create_param(initializer, [1, num_obs], name=name+"-w_f_Z_planner", trainable=True, regularizable=False)
+    def step(self, Qsa):
+        input = tf.reshape(Qsa, [self.num_state*self.num_action, 1])
+        weight = tf.reshape(self.w, [1, self.num_obs])
+        out = tf.matmul(input, weight)
+        out = tf.reshape(out, [-1, self.num_state, self.num_action, self.num_obs])
+        return out
 
 class F_A(object):
     def __init__(self,name):
