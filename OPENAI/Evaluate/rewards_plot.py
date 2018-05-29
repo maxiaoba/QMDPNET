@@ -9,8 +9,8 @@ from statsmodels.nonparametric.smoothers_lowess import lowess
 
 log_dir = "./Data/"
 games = ["carnival"]
-policies = ["lstm2","qmdp2"]
-colors = {"lstm":"green","qmdp":"blue","lstm2":"black","qmdp2":"red"}
+policies = ["lstm2","qmdp2","qmdp3","qmdp4"]
+colors = {"lstm2":"green","qmdp":"blue","qmdp2":"red","qmdp3":"yellow","qmdp4":"black"}
 occs = [20]
 
 font = {'family' : 'normal',
