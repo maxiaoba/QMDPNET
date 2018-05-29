@@ -89,6 +89,7 @@ class Model(object):
         self.sess = sess
         self.params = params
         self.grads = grads
+
         tf.global_variables_initializer().run(session=sess)
 
 class Runner(AbstractEnvRunner):
@@ -157,9 +158,9 @@ class Runner(AbstractEnvRunner):
         info['min_reward'] = min_reward
         return mb_obs, mb_states, mb_rewards, mb_masks, mb_actions, mb_values, info
 
-def learn(policy, env, seed, nsteps=5, N_itr=1e4, vf_coef=0.5, ent_coef=0.01, max_grad_norm=0.5, lr=7e-4, lrschedule='linear', epsilon=1e-5, alpha=0.99, gamma=0.99, 
+def learn_a2c(policy, env, seed, nsteps=5, N_itr=1e4, vf_coef=0.5, ent_coef=0.01, max_grad_norm=0.5, lr=7e-4, lrschedule='linear', epsilon=1e-5, alpha=0.99, gamma=0.99, 
             log_interval=1,
-            save_interval=10,save_path="./a2c",load_path=None):
+            save_interval=10,save_path="./Data/a2c",load_path=None):
     tf.reset_default_graph()
     set_global_seeds(seed)
 
@@ -199,7 +200,7 @@ def learn(policy, env, seed, nsteps=5, N_itr=1e4, vf_coef=0.5, ent_coef=0.01, ma
         if update % log_interval == 0 or update == 1:
             ev = explained_variance(values, rewards)
             logger.record_tabular("nupdates", update)
-            # logger.record_tabular("total_timesteps", update*nbatch)
+            logger.record_tabular("total_timesteps", update*nbatch)
             logger.record_tabular("fps", fps)
             logger.record_tabular("policy_entropy", float(policy_entropy))
             logger.record_tabular("value_loss", float(value_loss))

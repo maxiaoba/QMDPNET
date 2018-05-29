@@ -72,18 +72,9 @@ class QmdpPolicyPifc2(object):
 
         def step(ob, state, mask):
             return sess.run([a0, v0, snew, neglogp0], {X:ob, S:state, M:mask})
-            # a,b,c,d,wO,zo,ba,bf = sess.run([a0, v0, snew, neglogp0, w_O, Z_o, b_prime_a, b_f], {X:ob, S:state, M:mask})
-            # print("w_O: ",wO)
-            # print("w_O sum check: ",wO.sum(axis=2))
-            # print("z_o: ",zo)
-            # print("z_o shape: ",zo.shape)
-            # print("z_o sum check: ",zo.sum(axis=1))
-            # print("b_a: ",ba)
-            # print("b_a shape: ",ba.shape)
-            # print("b_a sum check: ",ba.sum(axis=1))
-            # print("b_f: ",bf)
-            # print("b_f shape: ",bf.shape)
-            # print("b_f sum check: ",bf.sum(axis=1))
+            # a,b,c,d,q_val = sess.run([a0, v0, snew, neglogp0, q], {X:ob, S:state, M:mask})
+            # print("q: ",q_val)
+            # print("q shape: ",q_val.shape)
             # return a,b,c,d
 
         def value(ob, state, mask):
