@@ -162,11 +162,6 @@ class VPG_t(BatchPolopt, Serializable):
             itr_start_time = time.time()
             with logger.prefix('itr #%d | ' % itr):
                 logger.log("Obtaining samples...")
-                # self.env._wrapped_env.generate_grid=True
-                # self.env._wrapped_env.generate_b0_start_goal=True
-                # self.env.reset()
-                # self.env._wrapped_env.generate_grid=False
-                # self.env._wrapped_env.generate_b0_start_goal=False
                 paths = self.obtain_samples(itr)
                 logger.log("Processing samples...")
                 samples_data = self.process_samples(itr, paths)
@@ -189,6 +184,13 @@ class VPG_t(BatchPolopt, Serializable):
                     if self.pause_for_plot:
                         input("Plotting evaluation run: Press Enter to "
                               "continue...")
+
+
+                params = tf.trainable_variables()
+                params_val = sess.run(params)
+                for param,param_val in zip(params,params_val):
+                    print(param.name+"value: ",param_val)
+
         self.shutdown_worker()
         if created_session:
             sess.close()

@@ -16,12 +16,7 @@ class PlannerNet(object):
         self.V0 = create_param(tf.constant_initializer(0.1), (self.num_state), name="V0", trainable=True, regularizable=False)
 
     def VI(self,n_batches):
-        """
-        builds neural network implementing value iteration. this is the first part of planner module. Fixed through time.
-        inputs: map (batch x N x N) and goal(batch)
-        returns: Q_K, and optionally: R, list of Q_i
-        """
-        # build reward model R
+        
         R0 = self.R0
         R0 = tf.tile(tf.reshape(R0, (1,self.num_state*self.num_action)),(n_batches,1))
         R0 = tf.to_float(R0)
@@ -46,14 +41,6 @@ class PlannerNet(object):
         return Q, V, R
 
     def policy(self, Q, b):
-        """
-        second part of planner module
-        :param Q: input Q_K after value iteration
-        :param b: belief history #[nbatch,num_state]
-        :param params: params
-        :return: a_pred,  vector with num_action elements, each has the
-        """
-        # weight Q by the belief
         b = tf.to_float(b)
 
         b_tiled = tf.tile(tf.expand_dims(b, 2), [1, 1, self.num_action])
@@ -80,6 +67,7 @@ class FilterNet(object):
         self.f_O = F_O(qmdp_param['obs_len'],qmdp_param['num_obs'], name)
         self.f_Z = F_Z(qmdp_param['num_obs'], self.num_state, name)
         self.z_os = create_param(tf.constant_initializer(1.0/self.num_obs), (self.num_state*self.num_obs), name="z_os", trainable=True, regularizable=False)
+        # self.z_os = create_param(tf.truncated_normal_initializer(mean=0.0, stddev=1.0, dtype=tf.float32), (self.num_state*self.num_obs), name="z_os", trainable=True, regularizable=False)
 
     def beliefupdate(self, local_obs, actions, ms, b):
         """
@@ -127,6 +115,7 @@ class FilterNet(object):
             local_obs[idx] = b #do this just to reduce memory usage, now local_obs becomes belief history
          #local_obs now has dimension [nstep,nenv,num_state]
         return local_obs,b
+        # return local_obs,b,w_O, Z_o, b_prime_a, b
 
 class F_R(object):
     def __init__(self, num_state, num_action,name):
@@ -214,13 +203,14 @@ class F_A(object):
 class F_O(object):
     def __init__(self, obs_len, num_obs,name):
         self.fclayers = FcLayers(obs_len, np.array([[num_obs, 'tanh'], [num_obs, 'smax']]), names=name+"-O_fc")
+        # self.fclayers = FcLayers(obs_len, np.array([[num_obs, 'tanh'], [num_obs, 'relu']]), names=name+"-O_fc")
     def step(self, local_obs):
         w_O = self.fclayers.step(local_obs)
         return w_O
 
 class F_pi(object):
     def __init__(self, num_action_in, num_action_out,name):
-        # self.fclayers = FcLayers(num_action_in, np.array([[num_action_out, 'smax']]), names="pi_fc", parent_layer=parent_layer)
+        # self.fclayers = FcLayers(num_action_in, np.array([[num_action_out, 'smax']]), names=name+"pi_fc")
         # Xiaobai: change nonlinear to smax
         pass
     def step(self, q):

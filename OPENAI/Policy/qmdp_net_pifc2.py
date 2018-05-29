@@ -1,40 +1,35 @@
-from tensorpack import graph_builder
 import tensorflow as tf
 import numpy as np
 
 class PlannerNet(object):
-    def __init__(self, qmdp_param, parent_layer=None):
+    def __init__(self, name, qmdp_param):
         # self.params = params
         self.K = qmdp_param['K']
         self.num_action = qmdp_param['num_action']
         self.num_state = qmdp_param['num_state']
-        self.f_R = F_R(self.num_state,self.num_action, parent_layer=parent_layer)
-        self.f_pi = F_pi(self.num_action, self.num_action, parent_layer=parent_layer)
-        self.f_T = F_T_planner(self.num_state,self.num_action, name="planner_net", parent_layer=parent_layer)
+        self.f_R = F_R(self.num_state, self.num_action, name)
+        self.f_pi = F_pi(self.num_action, self.num_action, name)
+        self.f_T = F_T_planner(self.num_state, self.num_action, name)
+        self.R0 = create_param(tf.constant_initializer(0.1), (self.num_state*self.num_action,), name="R0", trainable=True, regularizable=False)
+        self.V0 = create_param(tf.constant_initializer(0.1), (self.num_state), name="V0", trainable=True, regularizable=False)
 
-    def VI(self, R0, V0):
-        """
-        builds neural network implementing value iteration. this is the first part of planner module. Fixed through time.
-        inputs: map (batch x N x N) and goal(batch)
-        returns: Q_K, and optionally: R, list of Q_i
-        """
-        # build reward model R
-        # R = PlannerNet.f_R(map, goal, params.num_action,parent_layer=parent_layer)
+    def VI(self,n_batches):
+        
+        R0 = self.R0
+        R0 = tf.tile(tf.reshape(R0, (1,self.num_state*self.num_action)),(n_batches,1))
+        R0 = tf.to_float(R0)
+
+        V0 = self.V0
+        V0 = tf.tile(tf.reshape(V0, (1,self.num_state)),(n_batches,1))
+        V0 = tf.to_float(V0)
+
         R = self.f_R.step(R0)
 
-        # get transition model Tprime. It represents the transition model in the filter, but the weights are not shared.
-        # kernel = FilterNet.f_T(params.num_action,parent_layer=parent_layer)
-
-        # initialize value image
-        # V = tf.zeros(map.get_shape().as_list() + [1])
-        # V = tf.zeros((tf.shape(R0)[0],self.num_state))
         V = V0
         Q = None
 
         # repeat value iteration K times
         for i in range(self.K):
-            # apply transition and sum
-            # Q = tf.nn.conv2d(V, kernel, [1, 1, 1, 1], padding='SAME')
             Q = self.f_T.step(V)
             Q = Q + R
             V = tf.reduce_max(Q, axis=[2], keep_dims=False)
@@ -42,14 +37,8 @@ class PlannerNet(object):
         return Q, V, R
 
     def policy(self, Q, b):
-        """
-        second part of planner module
-        :param Q: input Q_K after value iteration
-        :param b: belief at current step
-        :param params: params
-        :return: a_pred,  vector with num_action elements, each has the
-        """
-        # weight Q by the belief
+        b = tf.to_float(b)
+
         b_tiled = tf.tile(tf.expand_dims(b, 2), [1, 1, self.num_action])
         q = tf.multiply(Q, b_tiled)
         # sum over states
@@ -58,64 +47,73 @@ class PlannerNet(object):
         self.q = q
         # low-level policy, f_pi
         # action_pred = PlannerNet.f_pi(q, params.num_action, parent_layer=parent_layer)
-        action_pred = self.f_pi.step(q)
-        self.action_pred = action_pred
-        return action_pred
+        # action_pred = self.f_pi.step(q)
+        # self.action_pred = action_pred
+        return q
 
 
 class FilterNet(object):
-    def __init__(self, qmdp_param, parent_layer=None):
+    def __init__(self, name, qmdp_param):
         # self.params = params
         self.num_action = qmdp_param['num_action']
         self.num_state = qmdp_param['num_state']
-        self.f_T = F_T_filter(self.num_state,self.num_action, name="filter_net", parent_layer=parent_layer)
-        self.f_A = F_A()
-        self.f_O = F_O(qmdp_param['obs_len'],qmdp_param['num_obs'], parent_layer=parent_layer)
-        self.f_Z = F_Z(qmdp_param['num_obs'], self.num_state, parent_layer=parent_layer)
+        self.num_obs = qmdp_param['num_obs']
+        self.f_T = F_T_filter(self.num_state,self.num_action, name)
+        self.f_A = F_A(name)
+        self.f_O = F_O(qmdp_param['obs_len'],qmdp_param['num_obs'], name)
+        self.f_Z = F_Z(qmdp_param['num_obs'], self.num_state, name)
+        self.z_os = create_param(tf.constant_initializer(1.0/self.num_obs), (self.num_state*self.num_obs), name="z_os", trainable=True, regularizable=False)
+        # self.z_os = create_param(tf.truncated_normal_initializer(mean=0.0, stddev=1.0, dtype=tf.float32), (self.num_state*self.num_obs), name="z_os", trainable=True, regularizable=False)
 
-    def beliefupdate(self, Z, b, action, local_obs):
+    def beliefupdate(self, local_obs, actions, ms, b):
         """
         Belief update in the filter module with pre-computed Z.
-        :param b: belief (b_i), [batch, N, M, 1]
-        :param action: action input (a_i)
-        :param obs: observation input (o_i)
-        :return: updated belief b_(i+1)
         """
-        # step 1: update belief with transition
-        # get transition kernel (T)
-        # kernel = FilterNet.f_T(params.num_action, parent_layer=parent_layer)
+        #local_obs: [nsteps,nenv,obs_len]
+        #actions: [nsteps,nenv,obs_len]
+        #ms: [nsteps,nenv] masks
+        #b: [nenv, num_state]
+        # nsteps, nenv, obs_len = local_obs.get_shape()
+        nsteps = len(local_obs)
+        nenv,obs_len = local_obs[0].get_shape()
 
-        # apply convolution which corresponds to the transition function in an MDP (f_T)
-        # b = tf.expand_dims(b, -1)
-        # b_prime = tf.nn.conv2d(b, kernel, [1, 1, 1, 1], padding='SAME')
-        b_prime = self.f_T.step(b)
+        z_os= self.z_os
+        z_os = tf.tile(tf.reshape(z_os, (1,self.num_state*self.num_obs)),(int(nenv),1))
+        z_os = tf.to_float(z_os)
+        Z = self.f_Z.step(z_os) #[nenv,num_state,num_obs]
 
-        # index into the appropriate channel of b_prime
-        # w_A = FilterNet.f_A(action, params.num_action, parent_layer=parent_layer)
-        w_A = self.f_A.step(action, self.num_action)
-        w_A = w_A[:, None] #w_A to shape [batch,1,|A|]
-        w_A = tf.to_float(w_A)
-        b_prime_a = tf.reduce_sum(tf.multiply(b_prime, w_A), [2], keep_dims=False) # soft indexing
+        for idx, (local_ob,action,m) in enumerate(zip(local_obs,actions,ms)):
+            #local_ob: [nenv,obs_len]
+            #action: [nenv, action_num]
+            #m: [nenv,1]
 
-        #b_prime_a = tf.abs(b_prime_a) # TODO there was this line. does it make a difference with softmax?
+            b = b*(1-m)
+            b_prime = self.f_T.step(b) #[nenv,num_state,num_action]
+            # index into the appropriate channel of b_prime
+            w_A = self.f_A.step(action, self.num_action) #[nenv, action_num]
+            w_A = w_A[:, None] #w_A to shape [nenv,1,action_num]
+            w_A = tf.to_float(w_A)
+            b_prime_a = tf.reduce_sum(tf.multiply(b_prime, w_A), [2], keep_dims=False) # hard indexing [nenv,num_state]
 
-        # step 2: update belief with observation
-        # get observation probabilities for the obseravtion input by soft indexing
-        # w_O = FilterNet.f_O(local_obs, parent_layer=parent_layer)
-        w_O = self.f_O.step(local_obs)
-        w_O = w_O[:,None] #tf.expand_dims(tf.expand_dims(w_O, axis=1), axis=1)
-        Z_o = tf.reduce_sum(tf.multiply(Z, w_O), [2], keep_dims=False) # soft indexing
+            # step 2: update belief with observation
+            # get observation probabilities for the obseravtion input by soft indexing
 
-        b_next = tf.multiply(b_prime_a, Z_o)
+            w_O = self.f_O.step(local_ob) #[nenv,num_obs]
+            w_O = w_O[:,None] #[nenv,1,num_obs]
+            Z_o = tf.reduce_sum(tf.multiply(Z, w_O), [2], keep_dims=False) # soft indexing [nenv,num_state]
 
-        # step 3: normalize over the state space
-        # add small number to avoid division by zero
-        b_next = tf.div(b_next + 1e-8, tf.reduce_sum(b_next + 1e-8, [1], keep_dims=True))
+            b = tf.multiply(b_prime_a, Z_o) #[nenv,num_state]
 
-        return b_next
+            # step 3: normalize over the state space
+            # add small number to avoid division by zero
+            b = tf.div(b + 1e-8, tf.reduce_sum(b + 1e-8, [1], keep_dims=True)) #[nenv,num_state]
+            local_obs[idx] = b #do this just to reduce memory usage, now local_obs becomes belief history
+         #local_obs now has dimension [nstep,nenv,num_state]
+        return local_obs,b
+        # return local_obs,b,w_O, Z_o, b_prime_a, b
 
 class F_R(object):
-    def __init__(self, num_state, num_action, parent_layer=None):
+    def __init__(self, num_state, num_action,name):
         self.num_state = num_state
         self.num_action = num_action
     def step(self, R0):
@@ -123,7 +121,7 @@ class F_R(object):
         return R
 
 class F_T_filter(object):
-    def __init__(self, num_state, num_action, name, parent_layer=None):
+    def __init__(self, num_state, num_action,name):
         self.num_state = num_state
         self.num_action = num_action
         w_std = 1.0 / np.sqrt(float(num_state))
@@ -132,7 +130,7 @@ class F_T_filter(object):
         input_size = num_state
         output_size = num_state*num_action
         initializer = tf.truncated_normal_initializer(mean=w_mean, stddev=w_std, dtype=dtype)
-        self.w = parent_layer.add_param_plain(initializer, [input_size, output_size], name='w_T_'+name, trainable=True, regularizable=False)
+        self.w = create_param(initializer, [input_size, output_size], name=name+"-w_f_T", trainable=True, regularizable=False)
     def step(self, input):
         weight = tf.reshape(self.w, [self.num_state, self.num_state, self.num_action])
         weight = tf.nn.softmax(weight, dim=1)
@@ -142,7 +140,7 @@ class F_T_filter(object):
         return out
 
 class F_T_planner(object):
-    def __init__(self, num_state, num_action, name, parent_layer=None):
+    def __init__(self, num_state, num_action,name):
         self.num_state = num_state
         self.num_action = num_action
         w_std = 1.0 / np.sqrt(float(num_state))
@@ -151,7 +149,7 @@ class F_T_planner(object):
         input_size = num_state
         output_size = num_state*num_action
         initializer = tf.truncated_normal_initializer(mean=w_mean, stddev=w_std, dtype=dtype)
-        self.w = parent_layer.add_param_plain(initializer, [input_size, output_size], name='w_T_'+name, trainable=True, regularizable=False)
+        self.w = create_param(initializer, [input_size, output_size], name=name+"-w_f_T", trainable=True, regularizable=False)
     def step(self, input):
         weight = tf.reshape(self.w, [self.num_state, self.num_state, self.num_action])
         weight = tf.nn.softmax(weight, dim=0)
@@ -161,7 +159,7 @@ class F_T_planner(object):
         return out
 
 class F_Z(object):
-    def __init__(self, num_obs, num_state, parent_layer=None):
+    def __init__(self, num_obs, num_state,name):
         self.num_obs = num_obs
         self.num_state = num_state
     def step(self, Z_os):
@@ -170,7 +168,7 @@ class F_Z(object):
         return Z
 
 class F_A(object):
-    def __init__(self):
+    def __init__(self,name):
         pass
     def step(self, action, num_action):
         # identity function
@@ -179,15 +177,16 @@ class F_A(object):
         return action
 
 class F_O(object):
-    def __init__(self, obs_len, num_obs, parent_layer=None):
-        self.fclayers = FcLayers(obs_len, np.array([[num_obs, 'tanh'], [num_obs, 'smax']]), names="O_fc", parent_layer=parent_layer)
+    def __init__(self, obs_len, num_obs,name):
+        self.fclayers = FcLayers(obs_len, np.array([[num_obs, 'tanh'], [num_obs, 'smax']]), names=name+"-O_fc")
+        # self.fclayers = FcLayers(obs_len, np.array([[num_obs, 'tanh'], [num_obs, 'relu']]), names=name+"-O_fc")
     def step(self, local_obs):
         w_O = self.fclayers.step(local_obs)
         return w_O
 
 class F_pi(object):
-    def __init__(self, num_action_in, num_action_out, parent_layer=None):
-        # self.fclayers = FcLayers(num_action_in, np.array([[num_action_out, 'smax']]), names="pi_fc", parent_layer=parent_layer)
+    def __init__(self, num_action_in, num_action_out,name):
+        # self.fclayers = FcLayers(num_action_in, np.array([[num_action_out, 'smax']]), names=name+"pi_fc")
         # Xiaobai: change nonlinear to smax
         pass
     def step(self, q):
@@ -198,7 +197,7 @@ class F_pi(object):
 # Helper function to construct layers conveniently
 
 class ConvLayer(object):
-    def __init__(self, input_size, kernel_size, filters, name, w_mean=0.0, w_std=None, addbias=True, strides=(1, 1, 1, 1), padding='SAME', parent_layer=None):
+    def __init__(self, input_size, kernel_size, filters, name, w_mean=0.0, w_std=None, addbias=True, strides=(1, 1, 1, 1), padding='SAME'):
         self.input_size = input_size
         self.output_size = filters
         self.name = name
@@ -211,11 +210,11 @@ class ConvLayer(object):
             w_std = 1.0 / np.sqrt(float(input_size * kernel_size * kernel_size))
 
         initializer = tf.truncated_normal_initializer(mean=w_mean, stddev=w_std, dtype=dtype)    
-        self.kernel = parent_layer.add_param_plain(initializer, [kernel_size, kernel_size, input_size, filters], name='w_'+name, trainable=True, regularizable=True)
+        self.kernel = create_param(initializer, [kernel_size, kernel_size, input_size, filters], name='w_'+name, trainable=True, regularizable=True)
         self.biases = None
         if addbias:
             initializer = tf.constant_initializer(0.0)
-            biases = parent_layer.add_param_plain(initializer, [filters], name='b_' + name, trainable=True, regularizable=False)
+            biases = create_param(initializer, [filters], name='b_' + name, trainable=True, regularizable=False)
             self.biases = biases
 
     def step(self, input):
@@ -226,7 +225,7 @@ class ConvLayer(object):
         return output
 
 class FcLayer(object):
-    def __init__(self, input_size, output_size, name, w_mean=0.0, w_std=None, parent_layer=None):
+    def __init__(self, input_size, output_size, name, w_mean=0.0, w_std=None):
         dtype = tf.float32
         self.input_size = input_size
         self.output_size = output_size
@@ -237,19 +236,19 @@ class FcLayer(object):
             w_std = 1.0 / np.sqrt(float(input_size))
 
         initializer = tf.truncated_normal_initializer(mean=w_mean, stddev=w_std, dtype=dtype)
-        self.w = parent_layer.add_param_plain(initializer, [input_size, output_size], name='w_' + name, trainable=True, regularizable=True)
+        self.w = create_param(initializer, [input_size, output_size], name='w_' + name, trainable=True, regularizable=True)
 
         # b = tf.get_variable("b_" + name, [output_size], initializer=tf.constant_initializer(0.0))
 
         initializer = tf.constant_initializer(0.0)
-        self.b = parent_layer.add_param_plain(initializer, [output_size], name='b_' + name, trainable=True, regularizable=False)
+        self.b = create_param(initializer, [output_size], name='b_' + name, trainable=True, regularizable=False)
 
     def step(self, input):
         output = tf.matmul(input, self.w) + self.b
         return output
 
 class ConvLayers(object):
-    def __init__(self, input_size, conv_params, names, parent_layer=None, **kwargs):
+    def __init__(self, input_size, conv_params, names, **kwargs):
         self.input_size = input_size
         input_size = input_size
         output_size = 0
@@ -262,7 +261,7 @@ class ConvLayers(object):
                 name = names[layer_i]
             else:
                 name = names+'_%d'%layer_i
-            convlayer = ConvLayer(input_size, kernelsize, output_size, name, parent_layer=parent_layer, **kwargs)
+            convlayer = ConvLayer(input_size, kernelsize, output_size, name, **kwargs)
             self.convlayers.append(convlayer)
             self.activations.append(conv_params[layer_i][2])
             input_size = output_size
@@ -276,7 +275,7 @@ class ConvLayers(object):
         return output
 
 class FcLayers(object):
-    def __init__(self, input_size, conv_params, names, parent_layer=None, **kwargs):
+    def __init__(self, input_size, conv_params, names, **kwargs):
         self.input_size = input_size
         input_size = input_size
         output_size = 0
@@ -288,7 +287,7 @@ class FcLayers(object):
                 name = names[layer_i]
             else:
                 name = names+'_%d'%layer_i
-            fclayer = FcLayer(input_size, output_size, name, parent_layer=parent_layer, **kwargs)
+            fclayer = FcLayer(input_size, output_size, name, **kwargs)
             self.fclayers.append(fclayer)
             self.activations.append(conv_params[layer_i][-1])
             input_size = output_size
@@ -344,4 +343,20 @@ class HeUniformInitializer(object):
             n_inputs = shape[-2] * receptive_field_size
         init_range = math.sqrt(1.0 / n_inputs)
         return tf.random_uniform_initializer(-init_range, init_range, dtype=dtype)(shape)
+
+def create_param(spec, shape, name, trainable=True, regularizable=True):
+    if not hasattr(spec, '__call__'):
+        assert isinstance(spec, (tf.Tensor, tf.Variable))
+        return spec
+    assert hasattr(spec, '__call__')
+    if regularizable:
+        # use the default regularizer
+        regularizer = None
+    else:
+        # do not regularize this variable
+        regularizer = lambda _: tf.constant(0.)
+    return tf.get_variable(
+        name=name, shape=shape, initializer=spec, trainable=trainable,
+        regularizer=regularizer, dtype=tf.float32
+    )
 
