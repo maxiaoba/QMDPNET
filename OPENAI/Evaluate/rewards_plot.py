@@ -9,8 +9,8 @@ from statsmodels.nonparametric.smoothers_lowess import lowess
 
 log_dir = "./Data/"
 games = ["carnival"]
-policies = ["lstm2","qmdp4","qmdp_pifc","qmdp_pifc2"]
-colors = {"lstm2":"green","qmdp_pifc":"blue","qmdp_pifc2":"red","qmdp4":"black"}
+policies = ["lstm2","lstm3","qmdp4","qmdp_pifc1","qmdp_pifc12","qmdp_pifc2","qmdp_pifc22"]
+# colors = {"lstm2":"green","qmdp_pifc":"blue","qmdp_pifc2":"red","qmdp4":"black"}
 occs = [20]
 
 font = {'family' : 'normal',
@@ -46,7 +46,7 @@ for occ in occs:
 			result = lowess(AvgRewards,x)
 			AvgRewards_smooth = result[:,1]
 
-			line, = plt.plot(range(len(AvgRewards_smooth)), AvgRewards_smooth, label=name,color=colors[policy])
+			line, = plt.plot(range(len(AvgRewards_smooth)), AvgRewards_smooth, label=name)#,color=colors[policy])
 			lines.append(line)
 		plt.legend(handles=lines)
 		plt.xlabel('Iteration')

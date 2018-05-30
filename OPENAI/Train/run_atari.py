@@ -55,7 +55,7 @@ def main():
     parser.add_argument('--save_interval', help='model save frequency', type=int, default=1000)
     parser.add_argument('--alg',help='training algorithm',choices=['a2c','ppo2'],default='a2c')
     args = parser.parse_args()
-    log_path = "./Data/"+args.alg+'_'+args.policy+"_"+args.env+"/"
+    log_path = "./Data/"+args.alg+'_'+args.policy+"_"+args.env+"seed"+str(args.seed)+"/"
     # log_path = "./Data/a2cTest/"
     logger.configure(dir=log_path)
     train(args.env, N_itr=args.N_itr, seed=args.seed,
