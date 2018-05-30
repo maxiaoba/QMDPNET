@@ -7,7 +7,7 @@ from Policy.qmdp_net import PlannerNet, FilterNet
 class QmdpPolicy(object):
 
     def __init__(self, sess, ob_space, ac_space, nbatch, nsteps, reuse=False):
-        nenv = nbatch // nsteps
+        nenv = nbatch // nsteps # floor division
 
         qmdp_param = {}
         qmdp_param['K'] = 3

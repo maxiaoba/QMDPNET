@@ -183,11 +183,10 @@ class F_Z_planner(object):
         input_size = num_state*num_action
         output_size = num_state*num_action*num_obs
         initializer = tf.truncated_normal_initializer(mean=w_mean, stddev=w_std, dtype=dtype)
-        self.w = create_param(initializer, [1, num_obs], name=name+"-w_f_Z_planner", trainable=True, regularizable=False)
+        self.w = create_param(initializer, [input_size, output_size], name=name+"-w_f_Z_planner", trainable=True, regularizable=False)
     def step(self, Qsa):
-        input = tf.reshape(Qsa, [self.num_state*self.num_action, 1])
-        weight = tf.reshape(self.w, [1, self.num_obs])
-        out = tf.matmul(input, weight)
+        input = tf.reshape(Qsa, [-1, self.num_state*self.num_action])
+        out = tf.matmul(input, self.w)
         out = tf.reshape(out, [-1, self.num_state, self.num_action, self.num_obs])
         return out
 
