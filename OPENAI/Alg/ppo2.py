@@ -119,9 +119,10 @@ class Runner(AbstractEnvRunner):
         mb_obs = np.asarray(mb_obs, dtype=self.obs.dtype)
         mb_rewards = np.asarray(mb_rewards, dtype=np.float32)
 
-        avg_reward = mb_rewards.sum(axis=1).mean()
-        max_reward = mb_rewards.sum(axis=1).max()
-        min_reward = mb_rewards.sum(axis=1).min()
+        # print(mb_rewards.shape) [nsteps, num_env]
+        avg_reward = mb_rewards.sum(axis=0).mean()
+        max_reward = mb_rewards.sum(axis=0).max()
+        min_reward = mb_rewards.sum(axis=0).min()
 
         mb_actions = np.asarray(mb_actions)
         mb_values = np.asarray(mb_values, dtype=np.float32)
