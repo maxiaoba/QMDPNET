@@ -10,6 +10,8 @@ from Policy.qmdp_policy import QmdpPolicy
 from Policy.qmdp_policy_relu import QmdpPolicyRelu
 from Policy.qmdp_policy_pifc import QmdpPolicyPifc
 from Policy.qmdp_policy_pifc2 import QmdpPolicyPifc2
+from Policy.qmdp_policy_pifc_split import QmdpPolicyPifcSplit
+from Policy.qmdp_policy_pifc2_split import QmdpPolicyPifc2Split
 from Policy.lstm_policy import LstmPolicy
 from Env.Atari.atari_wrapper import make_atari_env
 from baselines.common.cmd_util import arg_parser
@@ -26,6 +28,10 @@ def train(env_id, N_itr, seed, policy, lrschedule, num_env, log_path, save_inter
         policy_fn = QmdpPolicyPifc
     elif policy == 'qmdp_pifc2':
         policy_fn = QmdpPolicyPifc2
+    elif policy == 'qmdp_pifc_split':
+        policy_fn = QmdpPolicyPifcSplit
+    elif policy == 'qmdp_pifc2_split':
+        policy_fn = QmdpPolicyPifc2Split
     # env = VecFrameStack(make_atari_env(env_id, num_env, seed), 4)
     env = make_atari_env(env_id, num_env, seed)
     # env = AtariEnv(mask_num=20 ,game='carnival')
@@ -50,7 +56,8 @@ def main():
     parser.add_argument('--env', help='environment ID', default='carnivalRam20-v0')
     parser.add_argument('--seed', help='RNG seed', type=int, default=0)
     parser.add_argument('--N_itr', type=int, default=int(2e4))
-    parser.add_argument('--policy', help='Policy architecture', choices=['lstm','qmdp','qmdp_relu','qmdp_pifc','qmdp_pifc2'], default='qmdp')
+    parser.add_argument('--policy', help='Policy architecture', choices=['lstm','qmdp','qmdp_relu','qmdp_pifc','qmdp_pifc2',\
+                        'qmdp_pifc_split','qmdp_pifc2_split'], default='qmdp')
     parser.add_argument('--lrschedule', help='Learning rate schedule', choices=['constant', 'linear'], default='constant')
     parser.add_argument('--save_interval', help='model save frequency', type=int, default=1000)
     parser.add_argument('--alg',help='training algorithm',choices=['a2c','ppo2'],default='a2c')
