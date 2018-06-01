@@ -25,7 +25,7 @@ def make_atari_env(env_id, num_env, seed, wrapper_kwargs=None, start_index=0):
         def _thunk():
             env = make_atari(env_id)
             env.seed(seed + rank)
-            env = Monitor(env, logger.get_dir() and os.path.join(logger.get_dir(), str(rank)))
+            # env = Monitor(env, logger.get_dir() and os.path.join(logger.get_dir(), str(rank)))
             #return wrap_deepmind(env, **wrapper_kwargs)
             return env
         return _thunk

@@ -5,7 +5,7 @@ from baselines.common.distributions import make_pdtype
 
 class LstmPolicy(object):
 
-    def __init__(self, sess, ob_space, ac_space, nbatch, nsteps, nlstm=256, reuse=False):
+    def __init__(self, sess, ob_space, ac_space, nbatch, nsteps, nlstm=32, reuse=False):
         nenv = nbatch // nsteps
 
         # nh, nw, nc = ob_space.shape
