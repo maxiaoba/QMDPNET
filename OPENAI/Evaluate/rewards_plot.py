@@ -10,11 +10,12 @@ from statsmodels.nonparametric.smoothers_lowess import lowess
 log_dir = "./Data/"
 games = ["carnival"]
 
-names = []
-for policy in os.listdir(log_dir+"/CSV"):
-	if policy != '.DS_Store':
-		names.append(policy[:-4:])
-print(names)
+# names = []
+# for policy in os.listdir(log_dir+"/CSV"):
+# 	if policy != '.DS_Store':
+# 		names.append(policy[:-4:])
+# print(names)
+names = ['ppo2_lstm_0','ppo2_pifc_0','ppo2_pifc2_0']
 # colors = {"lstm2":"green","qmdp_pifc":"blue","qmdp_pifc2":"red","qmdp4":"black"}
 occs = [20]
 
@@ -54,7 +55,7 @@ plt.legend(handles=lines)
 plt.xlabel('Iteration')
 plt.ylabel('Average Undiscounted Path Reward')
 # plt.show()
-fig.savefig(log_dir+"Plot/"+'carnivalRam20'+'.pdf')
+fig.savefig(log_dir+"Plot/"+'ppo2_carnivalRam20'+'.pdf')
 plt.close(fig)
 
 

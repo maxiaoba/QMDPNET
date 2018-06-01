@@ -184,6 +184,7 @@ def learn_a2c(policy, env, seed, nsteps=5, N_itr=1e4, vf_coef=0.5, ent_coef=0.01
 
     for update in range(N_itr):
         obs, states, rewards, masks, actions, values, info = runner.run()
+
         # policy_loss, value_loss, policy_entropy = model.train(obs, states, rewards, masks, actions, values)
         policy_loss, value_loss, policy_entropy, grads_val = model.train(obs, states, rewards, masks, actions, values)
 
