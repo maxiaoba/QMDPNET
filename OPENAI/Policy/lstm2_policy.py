@@ -2,11 +2,11 @@ import numpy as np
 import tensorflow as tf
 from baselines.a2c.utils import conv, fc, conv_to_fc, batch_to_seq, seq_to_batch, lstm, lnlstm
 from baselines.common.distributions import make_pdtype
-from Policy.qmdp_net_pifc import PlannerNet, FilterNet
+from Policy.lstm2_net import lstm
 
-class QmdpPolicyPifc(object):
+class Lstm2Policy(object):
 
-    def __init__(self, sess, ob_space, ac_space, nbatch, nsteps, reuse=False):
+    def __init__(self, sess, ob_space, ac_space, nbatch, nsteps, nlstm=32, reuse=False):
         nenv = nbatch // nsteps
 
         qmdp_param = {}
@@ -26,52 +26,25 @@ class QmdpPolicyPifc(object):
         self.pdtype = make_pdtype(ac_space)
         X = tf.placeholder(tf.float32, input_shape) #[nbatch,obs+prev action]
         M = tf.placeholder(tf.float32, [nbatch]) #mask (done t-1)
-        S = tf.placeholder(tf.float32, [nenv, num_state]) #beliefs
-
-        input_len = ob_space.shape
-        input_shape = (nbatch,) + input_len
-
-        self.pdtype = make_pdtype(ac_space)
-        X = tf.placeholder(tf.float32, input_shape) #obs
-        M = tf.placeholder(tf.float32, [nbatch]) #mask (done t-1)
-        S = tf.placeholder(tf.float32, [nenv, nlstm*2]) #states
+        S = tf.placeholder(tf.float32, [nenv, nlstm*2]) #beliefs
 
         with tf.variable_scope("model", reuse=reuse):
             xs = batch_to_seq(X, nenv, nsteps)
             ms = batch_to_seq(M, nenv, nsteps)
-            h = S[:,0:]
-            c = S[:,:]
-            #same as xs
-            #ms has shape [nsteps,nenv]
+            h = S[:,0:nlstm]
+            c = S[:,nlstm:]
 
-            #build variabels
-            self.planner_net = PlannerNet("planner",qmdp_param)
-            self.filter_net = FilterNet("filter",qmdp_param)
+            self.lstm = lstm('lstm', input_len[0], nlstm)
+            h5, snew = self.lstm.update(xs, ms, h, c)
 
-            #calculate action value q, and belief bnew
-            s_hist, snew = self.filter_net.beliefupdate(obs, acts, ms, S)
-            # s_hist, snew, w_O, Z_o, b_prime_a, b_f = self.filter_net.beliefupdate(obs, acts, ms, S)
-            #s_hist: [nstep,nenv,num_state]
-            Q, _, _ = self.planner_net.VI(nbatch)
-
-            # h5, snew = lstm(xs, ms, S, 'lstm1', nh=nlstm)
-            # h5 = seq_to_batch(h5)
-
-            #calculate action and value
-            s_hist = seq_to_batch(s_hist) #[nbatch,num_state]
-            q = self.planner_net.policy(Q,s_hist)
-
-            self.pd, self.pi = self.pdtype.pdfromlatent(q)
-            vf = fc(q, 'v', 1) #critic value function
-
-            #pi = fc(h5, 'pi', nact) #actor
-            #vf = fc(h5, 'v', 1) #critic value function
+            h5 = seq_to_batch(h5)
+            vf = fc(h5, 'v', 1)
+            self.pd, self.pi = self.pdtype.pdfromlatent(h5)
 
         v0 = vf[:, 0]
         a0 = self.pd.sample()
         neglogp0 = self.pd.neglogp(a0)
-        # self.initial_state = np.zeros((nenv, nlstm*2), dtype=np.float32)
-        self.initial_state = np.ones((nenv, num_state), dtype=np.float32)/num_state
+        self.initial_state = np.zeros((nenv, nlstm*2), dtype=np.float32)
 
         def step(ob, state, mask):
             return sess.run([a0, v0, snew, neglogp0], {X:ob, S:state, M:mask})

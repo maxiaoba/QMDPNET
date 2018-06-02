@@ -1,204 +1,52 @@
 import tensorflow as tf
 import numpy as np
 
-class PlannerNet(object):
-    def __init__(self, name, qmdp_param):
+class lstm(object):
+    def __init__(self, name, input_len, nlstm):
         # self.params = params
-        self.K = qmdp_param['K']
-        self.num_action = qmdp_param['num_action']
-        self.num_state = qmdp_param['num_state']
-        self.f_R = F_R(self.num_state, self.num_action, name)
-        self.f_pi = F_pi(self.num_action, self.num_action, name)
-        self.f_T = F_T_planner(self.num_state, self.num_action, name)
-        self.R0 = create_param(tf.constant_initializer(0.1), (self.num_state*self.num_action,), name="R0", trainable=True, regularizable=False)
-        self.V0 = create_param(tf.constant_initializer(0.1), (self.num_state), name="V0", trainable=True, regularizable=False)
+        self.nlstm = nlstm
+        self.f_h = F_h(input_len, nlstm, name)
+        self.f_x = F_x(input_len, nlstm, name)
 
-    def VI(self,n_batches):
-        
-        R0 = self.R0
-        R0 = tf.tile(tf.reshape(R0, (1,self.num_state*self.num_action)),(n_batches,1))
-        R0 = tf.to_float(R0)
+    def update(self, xs, ms, h, c):
+        nsteps = len(xs)
+        nenv,obs_len = xs[0].get_shape()
 
-        V0 = self.V0
-        V0 = tf.tile(tf.reshape(V0, (1,self.num_state)),(n_batches,1))
-        V0 = tf.to_float(V0)
-
-        R = self.f_R.step(R0)
-
-        V = V0
-        Q = None
-
-        # repeat value iteration K times
-        for i in range(self.K):
-            Q = self.f_T.step(V)
-            Q = Q + R
-            V = tf.reduce_max(Q, axis=[2], keep_dims=False)
-
-        return Q, V, R
-
-    def policy(self, Q, b):
-        b = tf.to_float(b)
-
-        b_tiled = tf.tile(tf.expand_dims(b, 2), [1, 1, self.num_action])
-        q = tf.multiply(Q, b_tiled)
-        # sum over states
-        q = tf.reduce_sum(q, 1, keep_dims=False)
-        #self.printQ = tf.Print(q,[q],'q: ')
-        # self.q = q
-        # low-level policy, f_pi
-        # action_pred = PlannerNet.f_pi(q, params.num_action, parent_layer=parent_layer)
-        # action_pred = self.f_pi.step(q)
-        # self.action_pred = action_pred
-        return q
+        for idx, (x,m) in enumerate(zip(xs,ms)):
+            c = c*(1-m)
+            h = h*(1-m)
+            # z = tf.matmul(x, wx) + tf.matmul(h, wh) + b
+            z = self.f_h.step(x) + self.f_x.step(x)
+            i, f, o, u = tf.split(axis=1, num_or_size_splits=4, value=z)
+            i = tf.nn.sigmoid(i)
+            f = tf.nn.sigmoid(f)
+            o = tf.nn.sigmoid(o)
+            u = tf.tanh(u)
+            c = f*c + i*u
+            h = o*tf.tanh(c)
+            xs[idx] = h
+        s = tf.concat(axis=1, values=[c, h])
+        return xs, s
 
 
-class FilterNet(object):
-    def __init__(self, name, qmdp_param):
-        # self.params = params
-        self.num_action = qmdp_param['num_action']
-        self.num_state = qmdp_param['num_state']
-        self.num_obs = qmdp_param['num_obs']
-        self.f_T = F_T_filter(self.num_state,self.num_action, name)
-        self.f_A = F_A(name)
-        self.f_O = F_O(qmdp_param['obs_len'],qmdp_param['num_obs'], name)
-        self.f_Z = F_Z(qmdp_param['num_obs'], self.num_state, name)
-        self.z_os = create_param(tf.constant_initializer(1.0/self.num_obs), (self.num_state*self.num_obs), name="z_os", trainable=True, regularizable=False)
-        # self.z_os = create_param(tf.truncated_normal_initializer(mean=0.0, stddev=1.0, dtype=tf.float32), (self.num_state*self.num_obs), name="z_os", trainable=True, regularizable=False)
 
-    def beliefupdate(self, local_obs, actions, ms, b):
-        """
-        Belief update in the filter module with pre-computed Z.
-        """
-        #local_obs: [nsteps,nenv,obs_len]
-        #actions: [nsteps,nenv,obs_len]
-        #ms: [nsteps,nenv] masks
-        #b: [nenv, num_state]
-        # nsteps, nenv, obs_len = local_obs.get_shape()
-        nsteps = len(local_obs)
-        nenv,obs_len = local_obs[0].get_shape()
-
-        z_os= self.z_os
-        z_os = tf.tile(tf.reshape(z_os, (1,self.num_state*self.num_obs)),(int(nenv),1))
-        z_os = tf.to_float(z_os)
-        Z = self.f_Z.step(z_os) #[nenv,num_state,num_obs]
-
-        for idx, (local_ob,action,m) in enumerate(zip(local_obs,actions,ms)):
-            #local_ob: [nenv,obs_len]
-            #action: [nenv, action_num]
-            #m: [nenv,1]
-
-            b = b*(1-m)
-            b_prime = self.f_T.step(b) #[nenv,num_state,num_action]
-            # index into the appropriate channel of b_prime
-            w_A = self.f_A.step(action, self.num_action) #[nenv, action_num]
-            w_A = w_A[:, None] #w_A to shape [nenv,1,action_num]
-            w_A = tf.to_float(w_A)
-            b_prime_a = tf.reduce_sum(tf.multiply(b_prime, w_A), [2], keep_dims=False) # hard indexing [nenv,num_state]
-
-            b_prime_a = tf.nn.relu(b_prime_a) #qmdp2
-
-            # step 2: update belief with observation
-            # get observation probabilities for the obseravtion input by soft indexing
-
-            w_O = self.f_O.step(local_ob) #[nenv,num_obs]
-            w_O = w_O[:,None] #[nenv,1,num_obs]
-            Z_o = tf.reduce_sum(tf.multiply(Z, w_O), [2], keep_dims=False) # soft indexing [nenv,num_state]
-
-            b = tf.multiply(b_prime_a, Z_o) #[nenv,num_state]
-
-            b = tf.nn.relu(b) #qmdp2
-
-            # step 3: normalize over the state space
-            # add small number to avoid division by zero
-            # b = tf.div(b + 1e-8, tf.reduce_sum(b + 1e-8, [1], keep_dims=True)) #[nenv,num_state] #qmdp2
-            local_obs[idx] = b #do this just to reduce memory usage, now local_obs becomes belief history
-         #local_obs now has dimension [nstep,nenv,num_state]
-        return local_obs,b
-        # return local_obs,b,w_O, Z_o, b_prime_a, b
-
-class F_R(object):
-    def __init__(self, num_state, num_action,name):
-        self.num_state = num_state
-        self.num_action = num_action
-    def step(self, R0):
-        R = tf.reshape(R0, [-1,self.num_state,self.num_action])
-        return R
-
-class F_T_filter(object):
-    def __init__(self, num_state, num_action,name):
-        self.num_state = num_state
-        self.num_action = num_action
-        w_std = 1.0 / np.sqrt(float(num_state))
+class F_h(object):
+    def __init__(self, input_len, nlstm, name):
+        w_std = 1.0 / np.sqrt(float(input_len))
         w_mean = 0.0
         dtype = tf.float32
-        input_size = num_state
-        output_size = num_state*num_action
+        input_size = input_len
+        output_size = nlstm*4
         initializer = tf.truncated_normal_initializer(mean=w_mean, stddev=w_std, dtype=dtype)
-        self.w = create_param(initializer, [input_size, output_size], name=name+"-w_f_T", trainable=True, regularizable=False)
-    def step(self, input):
-        weight = tf.reshape(self.w, [self.num_state, self.num_state, self.num_action])
-        # weight = tf.nn.softmax(weight, dim=1)
-        weight = tf.nn.relu(weight) #qmdp2
-        weight = tf.reshape(weight, [self.num_state, self.num_state*self.num_action])
-        out = tf.matmul(input, weight)
-        out = tf.reshape(out, [-1,self.num_state,self.num_action])
-        return out
+        self.wh = create_param(initializer, [input_size, output_size], name=name+'_wh', trainable=True, regularizable=True)
+    def step(self, h):
+        return tf.matmul(h, self.wh)
 
-class F_T_planner(object):
-    def __init__(self, num_state, num_action,name):
-        self.num_state = num_state
-        self.num_action = num_action
-        w_std = 1.0 / np.sqrt(float(num_state))
-        w_mean = 0.0
-        dtype = tf.float32
-        input_size = num_state
-        output_size = num_state*num_action
-        initializer = tf.truncated_normal_initializer(mean=w_mean, stddev=w_std, dtype=dtype)
-        self.w = create_param(initializer, [input_size, output_size], name=name+"-w_f_T", trainable=True, regularizable=False)
-    def step(self, input):
-        weight = tf.reshape(self.w, [self.num_state, self.num_state, self.num_action])
-        # weight = tf.nn.softmax(weight, dim=0)
-        weight = tf.nn.relu(weight) #qmdp2
-        weight = tf.reshape(weight, [self.num_state, self.num_state*self.num_action])
-        out = tf.matmul(input, weight)
-        out = tf.reshape(out, [-1,self.num_state,self.num_action])
-        return out
-
-class F_Z(object):
-    def __init__(self, num_obs, num_state,name):
-        self.num_obs = num_obs
-        self.num_state = num_state
-    def step(self, Z_os):
-        Z = tf.reshape(Z_os, [-1,self.num_state,self.num_obs])
-        # Z = tf.nn.softmax(Z) #default is -1=2, if use dim = 2, cause issues at some tf version
-        Z = tf.nn.relu(Z) #qmdp2
-        return Z
-
-class F_A(object):
-    def __init__(self,name):
-        pass
-    def step(self, action, num_action):
-        # identity function
-        # w_A = tf.one_hot(action, num_action)
-        # return w_A
-        return action
-
-class F_O(object):
-    def __init__(self, obs_len, num_obs,name):
-        # self.fclayers = FcLayers(obs_len, np.array([[num_obs, 'tanh'], [num_obs, 'smax']]), names=name+"-O_fc")
-        self.fclayers = FcLayers(obs_len, np.array([[num_obs, 'tanh'], [num_obs, 'relu']]), names=name+"-O_fc")
-    def step(self, local_obs):
-        w_O = self.fclayers.step(local_obs)
-        return w_O
-
-class F_pi(object):
-    def __init__(self, num_action_in, num_action_out,name):
-        # self.fclayers = FcLayers(num_action_in, np.array([[num_action_out, 'smax']]), names=name+"pi_fc")
-        # Xiaobai: change nonlinear to smax
-        pass
-    def step(self, q):
-        # return self.fclayers.step(q)
-        return tf.nn.softmax(q, dim=-1)
+class F_x(object):
+    def __init__(self, input_len, nlstm, name):
+        self.fclayers = FcLayers(input_len, np.array([[nlstm*4, 'lin']]), names=name+"_f_x")
+    def step(self, x):
+        return self.fclayers.step(x)
 
 
 # Helper function to construct layers conveniently
