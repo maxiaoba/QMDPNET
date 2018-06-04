@@ -190,11 +190,11 @@ def learn_a2c(policy, env, seed, nsteps=5, N_itr=1e4, vf_coef=0.5, ent_coef=0.01
         nseconds = time.time()-tstart
         fps = int((update*nbatch)/nseconds)
 
-        # params = [x[1] for x in model.grads]
-        # params_val = model.sess.run(model.params)
-        # for param,grad_val,param_val in zip(params,grads_val,params_val):
-        #     print(param.name+"value: ",param_val)
-        #     print(param.name+"gradient: ",grad_val)
+        params = [x[1] for x in model.grads]
+        params_val = model.sess.run(model.params)
+        for param,grad_val,param_val in zip(params,grads_val,params_val):
+            print(param.name+"median value: ",np.median(param_val))
+            print(param.name+"median gradient: ",np.median(grad_val))
 
 
         if update % log_interval == 0 or update == 1:
@@ -204,9 +204,11 @@ def learn_a2c(policy, env, seed, nsteps=5, N_itr=1e4, vf_coef=0.5, ent_coef=0.01
             logger.record_tabular("fps", fps)
             logger.record_tabular("policy_entropy", float(policy_entropy))
             logger.record_tabular("value_loss", float(value_loss))
-            logger.record_tabular("explained_variance", float(ev))
-            for key in info.keys():
-                logger.record_tabular(key,info[key])
+            logger.record_tabular("explained_variance", float(ev))    
+            for param, grad_val in zip(params, grads_val):
+                logger.record_tabular(param.name+" median gradient", np.median(grad_val))
+        for key in info.keys():
+            logger.record_tabular(key,info[key])
             logger.dump_tabular()
         if update % save_interval == 0 or update == 1:
             model.save(save_path+"a2c_"+str(update)+".pkl")
