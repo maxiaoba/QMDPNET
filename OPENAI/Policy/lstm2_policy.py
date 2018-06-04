@@ -6,7 +6,7 @@ from Policy.lstm2_net import lstm
 
 class Lstm2Policy(object):
 
-    def __init__(self, sess, ob_space, ac_space, nbatch, nsteps, nlstm=32, reuse=False):
+    def __init__(self, sess, ob_space, ac_space, nbatch, nsteps, nlstm=16, reuse=False):
         nenv = nbatch // nsteps
 
         qmdp_param = {}

@@ -12,6 +12,7 @@ class QmdpPolicyPifc(object):
         qmdp_param = {}
         qmdp_param['K'] = 3
         qmdp_param['obs_len'] = ob_space.shape[0]-ac_space.n
+        print(ac_space.n)
         qmdp_param['num_action'] = ac_space.n
         qmdp_param['num_state'] = 32
         qmdp_param['num_obs'] = 17

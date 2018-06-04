@@ -23,7 +23,7 @@ from baselines.common.cmd_util import arg_parser
 from Env import Atari
 
 def train(env_id, N_itr, seed, policy, lrschedule, num_env, log_path, save_interval, alg):
-    if policy == 'lstm32':
+    if policy == 'lstm16':
         policy_fn = LstmPolicy
     elif policy == 'lstm2':
         policy_fn = Lstm2Policy
@@ -71,7 +71,7 @@ def main():
     parser.add_argument('--env', help='environment ID', default='carnivalRam20-v0')
     parser.add_argument('--seed', help='RNG seed', type=int, default=0)
     parser.add_argument('--N_itr', type=int, default=int(2e4))
-    parser.add_argument('--policy', help='Policy architecture', choices=['lstm32','lstm2',\
+    parser.add_argument('--policy', help='Policy architecture', choices=['lstm16','lstm2',\
                         'qmdp','qmdp_relu','qmdp_pifc','qmdp_pifc2',\
                         'qmdp_pifc_split','qmdp_pifc2_split','qmdp_pifc_split_scope',\
                         'qmdp_k1','qmdp_shallow','qmdp_dc'], default='qmdp')

@@ -15,7 +15,10 @@ games = ["carnival"]
 # 	if policy != '.DS_Store':
 # 		names.append(policy[:-4:])
 # print(names)
-names = ['ppo2_lstm_0','ppo2_pifc_0','ppo2_pifc2_0']
+names = ['a2c_lstm32_0','a2c_pifc_0','a2c_pifc_1','a2c_pifc2_0','a2c_pifc2_1',\
+			'a2c_dc_0','a2c_dc_1','a2c_shallow_0','a2c_shallow_1','a2c_k1_0','a2c_k1_1']
+# names = ['ppo2_lstm_0','ppo2_lstm_1','ppo2_pifc_0','ppo2_pifc_1','ppo2_pifc2_0',\
+# 			'ppo2_pifc2_1','ppo2_dc_0','ppo2_k1_0','ppo2_shallow_0']
 # colors = {"lstm2":"green","qmdp_pifc":"blue","qmdp_pifc2":"red","qmdp4":"black"}
 occs = [20]
 
@@ -55,7 +58,7 @@ plt.legend(handles=lines)
 plt.xlabel('Iteration')
 plt.ylabel('Average Undiscounted Path Reward')
 # plt.show()
-fig.savefig(log_dir+"Plot/"+'ppo2_carnivalRam20'+'.pdf')
+fig.savefig(log_dir+"Plot/"+'a2c_carnivalRam20'+'.pdf')
 plt.close(fig)
 
 
