@@ -42,7 +42,7 @@ def train(env_id, N_itr, seed, policy, lrschedule, num_env, log_path, save_inter
         learn_ppo2(policy=policy_fn, env=env, seed=seed,nsteps=128,nminibatches=4,
             lam=0.95, gamma=0.99, noptepochs=4, log_interval=1,
             ent_coef=.01,
-            lr=lambda f : f * 1e-2 #2.5e-4,
+            lr=lambda f : f * 1e-2, #2.5e-4,
             cliprange=lambda f : f * 0.1,
             N_itr=int(N_itr),
             save_interval=save_interval,
@@ -59,7 +59,7 @@ def main():
     parser.add_argument('--save_interval', help='model save frequency', type=int, default=1000)
     parser.add_argument('--alg',help='training algorithm',choices=['a2c','ppo2'],default='a2c')
     args = parser.parse_args()
-    log_path = "./Data/"+args.alg+'_'+args.policy+'_'+args.env+'_'+str(int(args.N_itr))+"steps_"+args.lrschedule+"Schedule/"
+    log_path = "./Data/"+args.alg+'_'+args.policy+'_'+args.env+'_'+str(int(args.N_itr))+"steps_"+args.lrschedule+"Schedule_1e2baseLR/"
     # log_path = "./Data/a2cTest/"
     logger.configure(dir=log_path)
     train(args.env, N_itr=args.N_itr, seed=args.seed,
