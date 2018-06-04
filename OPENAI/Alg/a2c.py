@@ -193,8 +193,10 @@ def learn_a2c(policy, env, seed, nsteps=5, N_itr=1e4, vf_coef=0.5, ent_coef=0.01
         params = [x[1] for x in model.grads]
         params_val = model.sess.run(model.params)
         for param,grad_val,param_val in zip(params,grads_val,params_val):
-            print(param.name+"median value: ",np.median(param_val))
-            print(param.name+"median gradient: ",np.median(grad_val))
+            if abs(np.median(grad_val)/np.median(param_val)) < 1e-3 :
+                print("Gradient Vanishing")
+                print(param.name+"median value: ",np.median(param_val))
+                print(param.name+"median gradient: ",np.median(grad_val))
 
 
         if update % log_interval == 0 or update == 1:

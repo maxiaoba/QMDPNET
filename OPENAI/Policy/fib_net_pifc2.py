@@ -2,12 +2,12 @@ import tensorflow as tf
 import numpy as np
 
 class PlannerNet(object):
-    def __init__(self, name, qmdp_param):
+    def __init__(self, name, fib_param):
         # self.params = params
-        self.K = qmdp_param['K']
-        self.num_action = qmdp_param['num_action']
-        self.num_state = qmdp_param['num_state']
-        self.num_obs  = qmdp_param['num_obs']
+        self.K = fib_param['K']
+        self.num_action = fib_param['num_action']
+        self.num_state = fib_param['num_state']
+        self.num_obs  = fib_param['num_obs']
         self.f_R = F_R(self.num_state, self.num_action, name)
         self.f_pi = F_pi(self.num_action, self.num_action, name)
         self.f_T = F_T_planner(self.num_state, self.num_action, name)
@@ -57,15 +57,15 @@ class PlannerNet(object):
 
 
 class FilterNet(object):
-    def __init__(self, name, qmdp_param):
+    def __init__(self, name, fib_param):
         # self.params = params
-        self.num_action = qmdp_param['num_action']
-        self.num_state = qmdp_param['num_state']
-        self.num_obs = qmdp_param['num_obs']
+        self.num_action = fib_param['num_action']
+        self.num_state = fib_param['num_state']
+        self.num_obs = fib_param['num_obs']
         self.f_T = F_T_filter(self.num_state,self.num_action, name)
         self.f_A = F_A(name)
-        self.f_O = F_O(qmdp_param['obs_len'],qmdp_param['num_obs'], name)
-        self.f_Z = F_Z(qmdp_param['num_obs'], self.num_state, name)
+        self.f_O = F_O(fib_param['obs_len'],fib_param['num_obs'], name)
+        self.f_Z = F_Z(fib_param['num_obs'], self.num_state, name)
         self.z_os = create_param(tf.constant_initializer(1.0/self.num_obs), (self.num_state*self.num_obs), name="z_os", trainable=True, regularizable=False)
         # self.z_os = create_param(tf.truncated_normal_initializer(mean=0.0, stddev=1.0, dtype=tf.float32), (self.num_state*self.num_obs), name="z_os", trainable=True, regularizable=False)
 
