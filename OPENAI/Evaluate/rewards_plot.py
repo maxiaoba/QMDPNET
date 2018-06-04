@@ -15,10 +15,11 @@ games = ["carnival"]
 # 	if policy != '.DS_Store':
 # 		names.append(policy[:-4:])
 # print(names)
-names = ['a2c_lstm32_0','a2c_pifc_0','a2c_pifc_1','a2c_pifc2_0','a2c_pifc2_1',\
-			'a2c_dc_0','a2c_dc_1','a2c_shallow_0','a2c_shallow_1','a2c_k1_0','a2c_k1_1']
-# names = ['ppo2_lstm_0','ppo2_lstm_1','ppo2_pifc_0','ppo2_pifc_1','ppo2_pifc2_0',\
-# 			'ppo2_pifc2_1','ppo2_dc_0','ppo2_k1_0','ppo2_shallow_0']
+names = ['a2c_lstm_0','a2c_lstm_1','a2c_lstm32_0','a2c_lstm16_0','a2c_lstm16_1']
+# names = ['a2c_lstm16_0','a2c_lstm16_1','a2c_pifc_0','a2c_pifc_1','a2c_pifc2_0','a2c_pifc2_1',\
+# 			'a2c_shallow_0','a2c_shallow_1','a2c_k1_0','a2c_k1_1']
+# names = ['ppo2_lstm16_0','ppo2_lstm16_1','ppo2_pifc_0','ppo2_pifc_1','ppo2_pifc2_0',\
+# 			'ppo2_pifc2_1','ppo2_k1_0','ppo2_k1_1','ppo2_shallow_0','ppo2_shallow_1']
 # colors = {"lstm2":"green","qmdp_pifc":"blue","qmdp_pifc2":"red","qmdp4":"black"}
 occs = [20]
 
@@ -34,6 +35,7 @@ plt.rc('ytick', labelsize=15)
 
 fig = plt.figure(1,figsize=(6,6))
 lines = []
+
 for name in names:
 	print(name)
 	reader = csv.DictReader(open(log_dir+"CSV/"+name+'.csv'))
@@ -41,24 +43,34 @@ for name in names:
 	MinRewards = []
 	MaxRewards = []
 	AvgDisRewards = []
-	for row in reader:
+
+	smoothAvgReward = []
+	smooth_strength = 0.999
+
+	for (i,row) in enumerate(reader):
 		# print(row)
-		AvgRewards.append(row['avg_reward'])
-		MinRewards.append(row['min_reward'])
-		MaxRewards.append(row['max_reward'])
+		AvgRewards.append(float(row['avg_reward']))
+		MinRewards.append(float(row['min_reward']))
+		MaxRewards.append(float(row['max_reward']))
+
+		if i == 0:
+			smoothAvgReward.append(AvgRewards[i])
+		else:
+			smoothAvgReward.append((1-smooth_strength)*AvgRewards[i]+smooth_strength*smoothAvgReward[i-1])
 		# AvgDisRewards.append(row['avg_dis_reward'])
 	x = range(len(AvgRewards))
 
-	result = lowess(AvgRewards,x)
-	AvgRewards_smooth = result[:,1]
+	# result = lowess(AvgRewards,x)
+	# AvgRewards_smooth = result[:,1]
 
-	line, = plt.plot(range(len(AvgRewards_smooth)), AvgRewards_smooth, label=name)#,color=colors[policy])
+	# line, = plt.plot(range(len(AvgRewards_smooth)), AvgRewards_smooth, label=name)#,color=colors[policy])
+	line, = plt.plot(range(len(smoothAvgReward)), smoothAvgReward, label=name)#,color=colors[policy])
 	lines.append(line)
 plt.legend(handles=lines)
 plt.xlabel('Iteration')
 plt.ylabel('Average Undiscounted Path Reward')
 # plt.show()
-fig.savefig(log_dir+"Plot/"+'a2c_carnivalRam20'+'.pdf')
+fig.savefig(log_dir+"Plot/"+'lstm_carnivalRam20'+'.pdf')
 plt.close(fig)
 
 
