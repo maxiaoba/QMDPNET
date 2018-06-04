@@ -13,8 +13,8 @@ class FibPolicyPifc2(object):
         fib_param['K'] = 3
         fib_param['obs_len'] = ob_space.shape[0]-ac_space.n
         fib_param['num_action'] = ac_space.n
-        fib_param['num_state'] = 100
-        fib_param['num_obs'] = 50
+        fib_param['num_state'] = 32
+        fib_param['num_obs'] = 17
 
         input_len = ob_space.shape
         input_shape = (nbatch,) + input_len

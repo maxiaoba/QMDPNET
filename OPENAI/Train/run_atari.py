@@ -36,12 +36,13 @@ def train(env_id, N_itr, seed, policy, lrschedule, num_env, log_path, save_inter
         learn_a2c(policy=policy_fn, env=env, seed=seed, N_itr=int(N_itr), lrschedule=lrschedule,
             nsteps=128,
             save_interval=save_interval,
-            save_path=log_path)#,load_path="./Data/a2cTest/a2c_1.pkl")
+            save_path=log_path,
+            lr=1e-2     )#,load_path="./Data/a2cTest/a2c_1.pkl")
     elif alg == 'ppo2':
         learn_ppo2(policy=policy_fn, env=env, seed=seed,nsteps=128,nminibatches=4,
             lam=0.95, gamma=0.99, noptepochs=4, log_interval=1,
             ent_coef=.01,
-            lr=lambda f : f * 2.5e-4,
+            lr=lambda f : f * 1e-2 #2.5e-4,
             cliprange=lambda f : f * 0.1,
             N_itr=int(N_itr),
             save_interval=save_interval,
@@ -61,7 +62,6 @@ def main():
     log_path = "./Data/"+args.alg+'_'+args.policy+'_'+args.env+'_'+str(int(args.N_itr))+"steps_"+args.lrschedule+"Schedule/"
     # log_path = "./Data/a2cTest/"
     logger.configure(dir=log_path)
-    assert(1==0)
     train(args.env, N_itr=args.N_itr, seed=args.seed,
         policy=args.policy, lrschedule=args.lrschedule, num_env=16, log_path=log_path, save_interval=args.save_interval,
         alg=args.alg)
