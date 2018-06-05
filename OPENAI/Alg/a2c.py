@@ -27,6 +27,7 @@ class Model(object):
         R = tf.placeholder(tf.float32, [nbatch])
         LR = tf.placeholder(tf.float32, [])
 
+        # in the forward pass, there is only "1 step" ?
         step_model = policy(sess, ob_space, ac_space, nenvs, 1, reuse=False)
         train_model = policy(sess, ob_space, ac_space, nenvs*nsteps, nsteps, reuse=True)
 
