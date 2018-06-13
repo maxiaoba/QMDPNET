@@ -8,11 +8,7 @@ from Alg.ppo2 import learn_ppo2
 # from baselines.ppo2.policies import CnnPolicy, LstmPolicy, LnLstmPolicy
 from Policy.qmdp_policy import QmdpPolicy
 from Policy.qmdp_policy_relu import QmdpPolicyRelu
-from Policy.qmdp_policy_pifc import QmdpPolicyPifc
-from Policy.qmdp_policy_pifc2 import QmdpPolicyPifc2
-from Policy.qmdp_policy_pifc_split import QmdpPolicyPifcSplit
-from Policy.qmdp_policy_pifc2_split import QmdpPolicyPifc2Split
-from Policy.qmdp_policy_pifc_split_scope import QmdpPolicyPifcSplitScope
+from Policy.qmdp_policy_split import QmdpPolicySplit
 from Policy.qmdp_policy_shallow import QmdpPolicyShallow
 from Policy.qmdp_policy_k1 import QmdpPolicyK1
 from Policy.qmdp_policy_dc import QmdpPolicyDc
@@ -31,16 +27,8 @@ def train(env_id, N_itr, seed, policy, lr, lrschedule, num_env, log_path, save_i
         policy_fn = QmdpPolicy
     elif policy == 'qmdp_relu':
         policy_fn = QmdpPolicyRelu
-    elif policy == 'qmdp_pifc':
-        policy_fn = QmdpPolicyPifc
-    elif policy == 'qmdp_pifc2':
-        policy_fn = QmdpPolicyPifc2
-    elif policy == 'qmdp_pifc_split':
-        policy_fn = QmdpPolicyPifcSplit
-    elif policy == 'qmdp_pifc2_split':
-        policy_fn = QmdpPolicyPifc2Split
-    elif policy == 'qmdp_pifc_split_scope':
-        policy_fn = QmdpPolicyPifcSplitScope
+    elif policy == 'qmdp_split':
+        policy_fn = QmdpPolicySplit
     elif policy == 'qmdp_k1':
         policy_fn = QmdpPolicyK1
     elif policy == 'qmdp_shallow':
@@ -72,9 +60,7 @@ def main():
     parser.add_argument('--seed', help='RNG seed', type=int, default=0)
     parser.add_argument('--N_itr', type=int, default=int(2e4))
     parser.add_argument('--policy', help='Policy architecture', choices=['lstm16','lstm2',\
-                        'qmdp','qmdp_relu','qmdp_pifc','qmdp_pifc2',\
-                        'qmdp_pifc_split','qmdp_pifc2_split','qmdp_pifc_split_scope',\
-                        'qmdp_k1','qmdp_shallow','qmdp_dc'], default='qmdp')
+                        'qmdp','qmdp_relu','qmdp_split','qmdp_k1','qmdp_shallow','qmdp_dc'], default='qmdp')
     parser.add_argument('--lr', type=float, default=7e-4)
     parser.add_argument('--lrschedule', help='Learning rate schedule', choices=['constant', 'linear'], default='constant')
     parser.add_argument('--save_interval', help='model save frequency', type=int, default=1000)

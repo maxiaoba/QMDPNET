@@ -44,12 +44,12 @@ class PlannerNet(object):
         # sum over states
         q = tf.reduce_sum(q, 1, keep_dims=False)
         #self.printQ = tf.Print(q,[q],'q: ')
-        self.q = q
+        # self.q = q
         # low-level policy, f_pi
         # action_pred = PlannerNet.f_pi(q, params.num_action, parent_layer=parent_layer)
-        action_pred = self.f_pi.step(q)
-        self.action_pred = action_pred
-        return action_pred,q
+        # action_pred = self.f_pi.step(q)
+        # self.action_pred = action_pred
+        return q
 
 
 class FilterNet(object):

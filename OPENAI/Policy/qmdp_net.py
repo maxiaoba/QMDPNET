@@ -10,8 +10,11 @@ class PlannerNet(object):
         self.f_R = F_R(self.num_state, self.num_action, name)
         self.f_pi = F_pi(self.num_action, self.num_action, name)
         self.f_T = F_T_planner(self.num_state, self.num_action, name)
-        self.R0 = create_param(tf.constant_initializer(0.1), (self.num_state*self.num_action,), name="R0", trainable=True, regularizable=False)
-        self.V0 = create_param(tf.constant_initializer(0.1), (self.num_state), name="V0", trainable=True, regularizable=False)
+        # self.R0 = create_param(tf.constant_initializer(0.1), (self.num_state*self.num_action,), name="R0", trainable=True, regularizable=False)
+        # self.V0 = create_param(tf.constant_initializer(0.1), (self.num_state), name="V0", trainable=True, regularizable=False)
+        initializer = tf.truncated_normal_initializer(mean=0.0, stddev=1.0, dtype=tf.float32)
+        self.R0 = create_param(initializer, (self.num_state*self.num_action,), name="R0", trainable=True, regularizable=False)
+        self.V0 = create_param(initializer, (self.num_state), name="V0", trainable=True, regularizable=False)
 
     def VI(self,n_batches):
         
@@ -47,9 +50,9 @@ class PlannerNet(object):
         self.q = q
         # low-level policy, f_pi
         # action_pred = PlannerNet.f_pi(q, params.num_action, parent_layer=parent_layer)
-        action_pred = self.f_pi.step(q)
-        self.action_pred = action_pred
-        return action_pred,q
+        # action_pred = self.f_pi.step(q)
+        # self.action_pred = action_pred
+        return q
 
 
 class FilterNet(object):
@@ -62,8 +65,8 @@ class FilterNet(object):
         self.f_A = F_A(name)
         self.f_O = F_O(qmdp_param['obs_len'],qmdp_param['num_obs'], name)
         self.f_Z = F_Z(qmdp_param['num_obs'], self.num_state, name)
-        self.z_os = create_param(tf.constant_initializer(1.0/self.num_obs), (self.num_state*self.num_obs), name="z_os", trainable=True, regularizable=False)
-        # self.z_os = create_param(tf.truncated_normal_initializer(mean=0.0, stddev=1.0, dtype=tf.float32), (self.num_state*self.num_obs), name="z_os", trainable=True, regularizable=False)
+        # self.z_os = create_param(tf.constant_initializer(1.0/self.num_obs), (self.num_state*self.num_obs), name="z_os", trainable=True, regularizable=False)
+        self.z_os = create_param(tf.truncated_normal_initializer(mean=0.0, stddev=1.0, dtype=tf.float32), (self.num_state*self.num_obs), name="z_os", trainable=True, regularizable=False)
 
     def beliefupdate(self, local_obs, actions, ms, b):
         """
@@ -94,11 +97,10 @@ class FilterNet(object):
             w_A = w_A[:, None] #w_A to shape [nenv,1,action_num]
             w_A = tf.to_float(w_A)
             b_prime_a = tf.reduce_sum(tf.multiply(b_prime, w_A), [2], keep_dims=False) # hard indexing [nenv,num_state]
-            #b_prime_a = tf.abs(b_prime_a) # TODO there was this line. does it make a difference with softmax?
 
             # step 2: update belief with observation
             # get observation probabilities for the obseravtion input by soft indexing
-            local_ob = tf.to_float(local_ob)
+
             w_O = self.f_O.step(local_ob) #[nenv,num_obs]
             w_O = w_O[:,None] #[nenv,1,num_obs]
             Z_o = tf.reduce_sum(tf.multiply(Z, w_O), [2], keep_dims=False) # soft indexing [nenv,num_state]

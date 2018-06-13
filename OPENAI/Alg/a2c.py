@@ -191,14 +191,16 @@ def learn_a2c(policy, env, seed, nsteps=5, N_itr=1e4, vf_coef=0.5, ent_coef=0.01
         nseconds = time.time()-tstart
         fps = int((update*nbatch)/nseconds)
 
-        # params = [x[1] for x in model.grads]
-        # params_val = model.sess.run(model.params)
-        # for param,grad_val,param_val in zip(params,grads_val,params_val):
-        #     print(param.name+"value: ",param_val)
-        #     print(param.name+"gradient: ",grad_val)
-
 
         if update % log_interval == 0 or update == 1:
+            params = [x[1] for x in model.grads]
+            params_val = model.sess.run(model.params)
+            for param,grad_val,param_val in zip(params,grads_val,params_val):
+                # print(param.name+" value: ",np.mean(np.abs(param_val)))
+                # print(param.name+"gradient: ",np.max(np.abs(grad_val)))
+                logger .record_tabular(param.name+" gradient: ",np.max(np.abs(grad_val)))
+
+
             ev = explained_variance(values, rewards)
             logger.record_tabular("nupdates", update)
             logger.record_tabular("total_timesteps", update*nbatch)

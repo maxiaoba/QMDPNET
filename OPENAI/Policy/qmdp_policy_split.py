@@ -2,9 +2,9 @@ import numpy as np
 import tensorflow as tf
 from baselines.a2c.utils import conv, fc, conv_to_fc, batch_to_seq, seq_to_batch, lstm, lnlstm
 from baselines.common.distributions import make_pdtype
-from Policy.qmdp_net_pifc import PlannerNet, FilterNet
+from Policy.qmdp_net import PlannerNet, FilterNet
 
-class QmdpPolicyPifc(object):
+class QmdpPolicySplit(object):
 
     def __init__(self, sess, ob_space, ac_space, nbatch, nsteps, reuse=False):
         nenv = nbatch // nsteps
@@ -12,7 +12,6 @@ class QmdpPolicyPifc(object):
         qmdp_param = {}
         qmdp_param['K'] = 3
         qmdp_param['obs_len'] = ob_space.shape[0]-ac_space.n
-        print(ac_space.n)
         qmdp_param['num_action'] = ac_space.n
         qmdp_param['num_state'] = 32
         qmdp_param['num_obs'] = 17
@@ -30,14 +29,9 @@ class QmdpPolicyPifc(object):
         S = tf.placeholder(tf.float32, [nenv, num_state]) #beliefs
 
         with tf.variable_scope("model", reuse=reuse):
-            xs = batch_to_seq(X, nenv, nsteps)
-            #xs originaly [nbatch,input_len]
-            #reshape xs to [nenv,nsteps,input_len]
-            #split xs along axis=1 to nsteps
-            #xs becomes [nsteps,nenv,input_len] 
-            #dived xs to obs and pre_action
-            obs = [x[:,0:obs_len] for x in xs]
-            acts = [x[:,obs_len:] for x in xs]
+            obs, acts = tf.split(X, [obs_len,num_action],1)
+            obs = batch_to_seq(obs, nenv, nsteps)
+            acts = batch_to_seq(acts, nenv, nsteps)
             ms = batch_to_seq(M, nenv, nsteps)
             #same as xs
             #ms has shape [nsteps,nenv]

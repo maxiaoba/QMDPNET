@@ -12,6 +12,7 @@ class QmdpPolicyRelu(object):
         qmdp_param = {}
         qmdp_param['K'] = 3
         qmdp_param['obs_len'] = ob_space.shape[0]-ac_space.n
+        print(ac_space.n)
         qmdp_param['num_action'] = ac_space.n
         qmdp_param['num_state'] = 32
         qmdp_param['num_obs'] = 17
@@ -23,6 +24,7 @@ class QmdpPolicyRelu(object):
         num_state = qmdp_param['num_state']
         num_obs = qmdp_param['num_obs']
 
+        self.pdtype = make_pdtype(ac_space)
         X = tf.placeholder(tf.float32, input_shape) #[nbatch,obs+prev action]
         M = tf.placeholder(tf.float32, [nbatch]) #mask (done t-1)
         S = tf.placeholder(tf.float32, [nenv, num_state]) #beliefs
@@ -55,15 +57,13 @@ class QmdpPolicyRelu(object):
 
             #calculate action and value
             s_hist = seq_to_batch(s_hist) #[nbatch,num_state]
-            pi, q = self.planner_net.policy(Q,s_hist)
+            q = self.planner_net.policy(Q,s_hist)
 
-            vf = fc(q, 'v', 1) #critic value function 
+            self.pd, self.pi = self.pdtype.pdfromlatent(q)
+            vf = fc(q, 'v', 1) #critic value function
 
             #pi = fc(h5, 'pi', nact) #actor
             #vf = fc(h5, 'v', 1) #critic value function
-
-        self.pdtype = make_pdtype(ac_space)
-        self.pd = self.pdtype.pdfromflat(pi)
 
         v0 = vf[:, 0]
         a0 = self.pd.sample()
@@ -73,18 +73,9 @@ class QmdpPolicyRelu(object):
 
         def step(ob, state, mask):
             return sess.run([a0, v0, snew, neglogp0], {X:ob, S:state, M:mask})
-            # a,b,c,d,wO,zo,ba,bf = sess.run([a0, v0, snew, neglogp0, w_O, Z_o, b_prime_a, b_f], {X:ob, S:state, M:mask})
-            # print("w_O: ",wO)
-            # print("w_O sum check: ",wO.sum(axis=2))
-            # print("z_o: ",zo)
-            # print("z_o shape: ",zo.shape)
-            # print("z_o sum check: ",zo.sum(axis=1))
-            # print("b_a: ",ba)
-            # print("b_a shape: ",ba.shape)
-            # print("b_a sum check: ",ba.sum(axis=1))
-            # print("b_f: ",bf)
-            # print("b_f shape: ",bf.shape)
-            # print("b_f sum check: ",bf.sum(axis=1))
+            # a,b,c,d,q_val = sess.run([a0, v0, snew, neglogp0, q], {X:ob, S:state, M:mask})
+            # print("q: ",q_val)
+            # print("q shape: ",q_val.shape)
             # return a,b,c,d
 
         def value(ob, state, mask):
@@ -93,7 +84,6 @@ class QmdpPolicyRelu(object):
         self.X = X
         self.M = M
         self.S = S
-        self.pi = pi
         self.vf = vf
         self.step = step
         self.value = value
