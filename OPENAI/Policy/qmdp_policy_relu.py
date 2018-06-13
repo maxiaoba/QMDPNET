@@ -12,7 +12,6 @@ class QmdpPolicyRelu(object):
         qmdp_param = {}
         qmdp_param['K'] = 3
         qmdp_param['obs_len'] = ob_space.shape[0]-ac_space.n
-        print(ac_space.n)
         qmdp_param['num_action'] = ac_space.n
         qmdp_param['num_state'] = 32
         qmdp_param['num_obs'] = 17
@@ -73,9 +72,13 @@ class QmdpPolicyRelu(object):
 
         def step(ob, state, mask):
             return sess.run([a0, v0, snew, neglogp0], {X:ob, S:state, M:mask})
-            # a,b,c,d,q_val = sess.run([a0, v0, snew, neglogp0, q], {X:ob, S:state, M:mask})
+            # a,b,c,d,w_O_val, Z_o_val, b_a_val, b_f_val  = sess.run([a0, v0, snew, neglogp0, w_O, Z_o, b_prime_a, b_f], {X:ob, S:state, M:mask})
             # print("q: ",q_val)
             # print("q shape: ",q_val.shape)
+            # print('w_O: ',w_O_val)
+            # print('Z_o: ',Z_o_val)
+            # print('b_a: ',b_a_val)
+            # print('b_f: ',b_f_val)
             # return a,b,c,d
 
         def value(ob, state, mask):

@@ -12,6 +12,9 @@ class PlannerNet(object):
         self.f_T = F_T_planner(self.num_state, self.num_action, name)
         self.R0 = create_param(tf.constant_initializer(0.1), (self.num_state*self.num_action,), name="R0", trainable=True, regularizable=False)
         self.V0 = create_param(tf.constant_initializer(0.1), (self.num_state), name="V0", trainable=True, regularizable=False)
+        # initializer = tf.truncated_normal_initializer(mean=0.0, stddev=1.0, dtype=tf.float32)
+        # self.R0 = create_param(initializer, (self.num_state*self.num_action,), name="R0", trainable=True, regularizable=False)
+        # self.V0 = create_param(initializer, (self.num_state), name="V0", trainable=True, regularizable=False)
 
     def VI(self,n_batches):
         
@@ -62,8 +65,8 @@ class FilterNet(object):
         self.f_A = F_A(name)
         self.f_O = F_O(qmdp_param['obs_len'],qmdp_param['num_obs'], name)
         self.f_Z = F_Z(qmdp_param['num_obs'], self.num_state, name)
-        self.z_os = create_param(tf.constant_initializer(1.0/self.num_obs), (self.num_state*self.num_obs), name="z_os", trainable=True, regularizable=False)
-        # self.z_os = create_param(tf.truncated_normal_initializer(mean=0.0, stddev=1.0, dtype=tf.float32), (self.num_state*self.num_obs), name="z_os", trainable=True, regularizable=False)
+        # self.z_os = create_param(tf.constant_initializer(1.0/self.num_obs), (self.num_state*self.num_obs), name="z_os", trainable=True, regularizable=False)
+        self.z_os = create_param(tf.truncated_normal_initializer(mean=0.0, stddev=1.0/self.num_obs, dtype=tf.float32), (self.num_state*self.num_obs), name="z_os", trainable=True, regularizable=False)
 
     def beliefupdate(self, local_obs, actions, ms, b):
         """

@@ -16,17 +16,17 @@ games = ["carnival"]
 # 		names.append(policy[:-4:])
 # print(names)
 # names = ['a2c_lstm_0','a2c_lstm_1','a2c_lstm32_0','a2c_lstm16_0','a2c_lstm16_1']
-# names = ['a2c_lstm16_1','a2c_pifc2_1','a2c_pifc_1',\
-# 			'a2c_shallow_1','a2c_dc_1',]
-names = ['ppo2_lstm16_1','ppo2_pifc2_1','ppo2_pifc_1',\
-			'ppo2_shallow_1','ppo2_dc_1',]
+names = ['a2c_lstm16_0','a2c_pifc2_0','a2c_pifc_0',\
+			'a2c_shallow_0','a2c_dc_0','a2c_qmdp_randint_0']
+# names = ['ppo2_lstm16_1','ppo2_pifc2_1','ppo2_pifc_1',\
+# 			'ppo2_shallow_1','ppo2_dc_1',]
 # names = ['a2c_lstm16_lr0.01_0','a2c_pifc_lr0.01_0','a2c_pifc2_lr0.01_0',\
 # 			'a2c_shallow_lr0.01_0','a2c_k1_lr0.01_0','a2c_dc_lr0.01_0']
 # labels = names
 # names = ['a2c_lstm16_0','a2c_lstm16_1','a2c_pifc2_0','a2c_pifc2_1']
 # names = ['ppo2_lstm16_0','ppo2_lstm16_1','ppo2_pifc2_0','ppo2_pifc2_1']
 labels = ['lstm','qmdp','qmdp_relu',\
-			'qmdp_shallow','qmdp_dc']
+			'qmdp_shallow','qmdp_dc','qmdp_randint']
 # colors = {"lstm2":"green","qmdp_pifc":"blue","qmdp_pifc2":"red","qmdp4":"black"}
 occs = [20]
 
@@ -78,7 +78,7 @@ plt.legend(handles=lines)
 plt.xlabel('Iteration')
 plt.ylabel('Average Undiscounted Path Reward')
 # plt.show()
-fig.savefig(log_dir+"Plot/Report/"+'ppo2_carnivalRam20_seed1'+'.pdf')
+fig.savefig(log_dir+"Plot/Report/"+'a2c_carnivalRam20_seed0'+'.pdf')
 plt.close(fig)
 
 
