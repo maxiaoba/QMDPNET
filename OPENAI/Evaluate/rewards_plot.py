@@ -15,18 +15,8 @@ games = ["carnival"]
 # 	if policy != '.DS_Store':
 # 		names.append(policy[:-4:])
 # print(names)
-# names = ['a2c_lstm_0','a2c_lstm_1','a2c_lstm32_0','a2c_lstm16_0','a2c_lstm16_1']
-names = ['a2c_lstm16_0','a2c_pifc2_0','a2c_pifc_0',\
-			'a2c_shallow_0','a2c_dc_0','a2c_qmdp_randint_0']
-# names = ['ppo2_lstm16_1','ppo2_pifc2_1','ppo2_pifc_1',\
-# 			'ppo2_shallow_1','ppo2_dc_1',]
-# names = ['a2c_lstm16_lr0.01_0','a2c_pifc_lr0.01_0','a2c_pifc2_lr0.01_0',\
-# 			'a2c_shallow_lr0.01_0','a2c_k1_lr0.01_0','a2c_dc_lr0.01_0']
-# labels = names
-# names = ['a2c_lstm16_0','a2c_lstm16_1','a2c_pifc2_0','a2c_pifc2_1']
-# names = ['ppo2_lstm16_0','ppo2_lstm16_1','ppo2_pifc2_0','ppo2_pifc2_1']
-labels = ['lstm','qmdp','qmdp_relu',\
-			'qmdp_shallow','qmdp_dc','qmdp_randint']
+names = ['a2c_qmdp_0_long','a2c_qmdp_dc_0_long','a2c_qmdp_0']
+labels = names
 # colors = {"lstm2":"green","qmdp_pifc":"blue","qmdp_pifc2":"red","qmdp4":"black"}
 occs = [20]
 
@@ -52,7 +42,7 @@ for (index,name) in enumerate(names):
 	AvgDisRewards = []
 
 	smoothAvgReward = []
-	smooth_strength = 0.999
+	smooth_strength = 0.99
 
 	for (i,row) in enumerate(reader):
 		# print(row)
@@ -67,18 +57,18 @@ for (index,name) in enumerate(names):
 		# AvgDisRewards.append(row['avg_dis_reward'])
 	x = range(len(AvgRewards))
 
-	result = lowess(AvgRewards,x)
-	AvgRewards_smooth = result[:,1]
+	# result = lowess(AvgRewards,x)
+	# AvgRewards_smooth = result[:,1]
 
-	line, = plt.plot(range(len(AvgRewards_smooth)), AvgRewards_smooth, label=labels[index])#,color=colors[policy])
-	# line, = plt.plot(range(len(smoothAvgReward)), smoothAvgReward, label=name)#,color=colors[policy])
+	# line, = plt.plot(range(len(AvgRewards_smooth)), AvgRewards_smooth, label=labels[index])#,color=colors[policy])
+	line, = plt.plot(range(len(smoothAvgReward)), smoothAvgReward, label=name)#,color=colors[policy])
 	lines.append(line)
 # plt.title('Deffirent Networks Trained with A2C under Random Seed 0')
 plt.legend(handles=lines)
 plt.xlabel('Iteration')
 plt.ylabel('Average Undiscounted Path Reward')
 # plt.show()
-fig.savefig(log_dir+"Plot/Report/"+'a2c_carnivalRam20_seed0'+'.pdf')
+fig.savefig(log_dir+"Plot/"+'a2c_carnivalRam20_seed0_long_runningavg'+'.pdf')
 plt.close(fig)
 
 

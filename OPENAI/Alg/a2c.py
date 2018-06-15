@@ -207,7 +207,9 @@ def learn_a2c(policy, env, seed, nsteps=5, N_itr=1e4, vf_coef=0.5, ent_coef=0.01
             logger.record_tabular("fps", fps)
             logger.record_tabular("policy_entropy", float(policy_entropy))
             logger.record_tabular("value_loss", float(value_loss))
+            logger.record_tabular("policy_loss", float(policy))
             logger.record_tabular("explained_variance", float(ev))
+
             for key in info.keys():
                 logger.record_tabular(key,info[key])
             logger.dump_tabular()
