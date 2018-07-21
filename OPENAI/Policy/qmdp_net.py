@@ -21,31 +21,38 @@ class PlannerNet(object):
         R0 = self.R0
         R0 = tf.tile(tf.reshape(R0, (1,self.num_state*self.num_action)),(n_batches,1))
         R0 = tf.to_float(R0)
+        # shape of R0 is [nbatches, num_state*num_action]
 
         V0 = self.V0
         V0 = tf.tile(tf.reshape(V0, (1,self.num_state)),(n_batches,1))
         V0 = tf.to_float(V0)
+        # shape of V0 is [nbatches, num_state]
 
         R = self.f_R.step(R0)
+        # shape: [nbatches, num_state, num_action]
 
         V = V0
         Q = None
 
         # repeat value iteration K times
         for i in range(self.K):
-            Q = self.f_T.step(V)
+            Q = self.f_T.step(V) # shape: [nbatches, num_state, num_action]
             Q = Q + R
-            V = tf.reduce_max(Q, axis=[2], keep_dims=False)
+            V = tf.reduce_max(Q, axis=[2], keep_dims=False) # [nbatches, num_state]
 
         return Q, V, R
 
     def policy(self, Q, b):
         b = tf.to_float(b)
 
+        # expand dims changes b to shape [nbatch, num_state, 1] and then to [nbatch, num_state, num_action]
         b_tiled = tf.tile(tf.expand_dims(b, 2), [1, 1, self.num_action])
-        q = tf.multiply(Q, b_tiled)
+        # Q: [nbatch, numstate, numaction]
+        q = tf.multiply(Q, b_tiled) # elementwise multiplication
+        # q: [nbatch, nstate, naction]
         # sum over states
         q = tf.reduce_sum(q, 1, keep_dims=False)
+        # q: [nbatch, naction]
         #self.printQ = tf.Print(q,[q],'q: ')
         self.q = q
         # low-level policy, f_pi

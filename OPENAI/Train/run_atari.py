@@ -14,6 +14,7 @@ from Policy.qmdp_policy_k1 import QmdpPolicyK1
 from Policy.qmdp_policy_dc import QmdpPolicyDc
 from Policy.lstm_policy import LstmPolicy
 from Policy.lstm2_policy import Lstm2Policy
+from Policy.qmdp_policy_separate_value_network import QmdpSVNPolicy
 from Env.Atari.atari_wrapper import make_atari_env
 from baselines.common.cmd_util import arg_parser
 from Env import Atari
@@ -35,6 +36,8 @@ def train(env_id, N_itr, seed, policy, lr, lrschedule, num_env, log_path, save_i
         policy_fn = QmdpPolicyShallow
     elif policy == 'qmdp_dc':
         policy_fn = QmdpPolicyDc
+    elif policy == 'qmdp_svn':
+        policy_fn = QmdpSVNPolicy
     # env = VecFrameStack(make_atari_env(env_id, num_env, seed), 4)
     env = make_atari_env(env_id, num_env, seed)
     # env = AtariEnv(mask_num=20 ,game='carnival')
@@ -60,13 +63,13 @@ def main():
     parser.add_argument('--seed', help='RNG seed', type=int, default=0)
     parser.add_argument('--N_itr', type=int, default=int(2e4))
     parser.add_argument('--policy', help='Policy architecture', choices=['lstm16','lstm2',\
-                        'qmdp','qmdp_relu','qmdp_split','qmdp_k1','qmdp_shallow','qmdp_dc'], default='qmdp')
+                        'qmdp','qmdp_relu','qmdp_split','qmdp_k1','qmdp_shallow','qmdp_dc','qmdp_svn'], default='qmdp')
     parser.add_argument('--lr', type=float, default=7e-4)
     parser.add_argument('--lrschedule', help='Learning rate schedule', choices=['constant', 'linear'], default='constant')
     parser.add_argument('--save_interval', help='model save frequency', type=int, default=1000)
     parser.add_argument('--alg',help='training algorithm',choices=['a2c','ppo2'],default='a2c')
     args = parser.parse_args()
-    log_path = "./Data/"+args.alg+'_'+args.policy+"_"+args.env+"lr"+str(args.lr)+"seed"+str(args.seed)+"/"
+    log_path = "./Data/"+args.alg+'_'+args.policy+"_"+args.env+"lr"+str(args.lr)+"seed"+str(args.seed)+"_ID_12345/"
     # log_path = "./Data/a2cTest/"
     logger.configure(dir=log_path)
     train(args.env, N_itr=args.N_itr, seed=args.seed,

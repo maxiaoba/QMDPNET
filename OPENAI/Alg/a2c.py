@@ -13,6 +13,7 @@ from baselines.a2c.utils import discount_with_dones
 from baselines.a2c.utils import Scheduler, make_path, find_trainable_variables
 from baselines.a2c.utils import cat_entropy, mse
 
+# combine all the losses from all the different moving pieces
 class Model(object):
 
     def __init__(self, policy, ob_space, ac_space, nenvs, nsteps,
@@ -23,7 +24,7 @@ class Model(object):
         nbatch = nenvs*nsteps
 
         A = tf.placeholder(tf.int32, [nbatch])
-        ADV = tf.placeholder(tf.float32, [nbatch])
+        ADV = tf.placeholder(tf.float32, [nbatch]) # perhaps this is advantage?
         R = tf.placeholder(tf.float32, [nbatch])
         LR = tf.placeholder(tf.float32, [])
 
@@ -47,7 +48,10 @@ class Model(object):
         lr = Scheduler(v=lr, nvalues=total_timesteps, schedule=lrschedule)
 
         def train(obs, states, rewards, masks, actions, values):
+            ############################ place where advantage is calculated
+            ####################################################################
             advs = rewards - values
+            ####################################################################
             for step in range(len(obs)):
                 cur_lr = lr.value()
             td_map = {train_model.X:obs, A:actions, ADV:advs, R:rewards, LR:cur_lr}
@@ -102,6 +106,7 @@ class Runner(AbstractEnvRunner):
         mb_obs, mb_rewards, mb_actions, mb_values, mb_dones = [],[],[],[],[]
         mb_states = self.states
         for n in range(self.nsteps):
+            ##################################################### this is where values come from
             actions, values, states, _ = self.model.step(self.obs, self.states, self.dones)
             mb_obs.append(np.copy(self.obs))
             mb_actions.append(actions)
@@ -183,7 +188,7 @@ def learn_a2c(policy, env, seed, nsteps=5, N_itr=1e4, vf_coef=0.5, ent_coef=0.01
     # writer = tf.summary.FileWriter(logdir=save_path)
 
     for update in range(N_itr):
-        obs, states, rewards, masks, actions, values, info = runner.run()
+        obs, states, rewards, masks, actions, values, info = runner.run() # here, values are the discounted rewards, i believe
 
         # policy_loss, value_loss, policy_entropy = model.train(obs, states, rewards, masks, actions, values)
         policy_loss, value_loss, policy_entropy, grads_val = model.train(obs, states, rewards, masks, actions, values)
