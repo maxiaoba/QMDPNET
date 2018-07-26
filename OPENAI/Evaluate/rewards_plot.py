@@ -15,7 +15,8 @@ games = ["carnival"]
 # 	if policy != '.DS_Store':
 # 		names.append(policy[:-4:])
 # print(names)
-names = ['a2c_qmdp_0_long','a2c_qmdp_dc_0_long','a2c_qmdp_0']
+names = ['a2c_lstm16_0','a2c_lstm16_1','ppo2_lstm16_0','ppo2_lstm16_1',\
+		'a2c_qmdp_0','a2c_qmdp_1','ppo2_qmdp_0','ppo2_qmdp_1']
 labels = names
 # colors = {"lstm2":"green","qmdp_pifc":"blue","qmdp_pifc2":"red","qmdp4":"black"}
 occs = [20]
@@ -68,7 +69,7 @@ plt.legend(handles=lines)
 plt.xlabel('Iteration')
 plt.ylabel('Average Undiscounted Path Reward')
 # plt.show()
-fig.savefig(log_dir+"Plot/"+'a2c_carnivalRam20_seed0_long_runningavg'+'.pdf')
+fig.savefig(log_dir+"Plot/"+'a2c_ppo2_carnivalRam20'+'.pdf')
 plt.close(fig)
 
 

@@ -2,15 +2,15 @@ import numpy as np
 import tensorflow as tf
 from baselines.a2c.utils import conv, fc, conv_to_fc, batch_to_seq, seq_to_batch, lstm, lnlstm
 from baselines.common.distributions import make_pdtype
-from Policy.qmdp_net_dc import PlannerNet, FilterNet
+from Policy.OneD.qmdp_net import PlannerNet, FilterNet
 
-class QmdpPolicyDc(object):
+class QmdpPolicy(object):
 
     def __init__(self, sess, ob_space, ac_space, nbatch, nsteps, reuse=False):
         nenv = nbatch // nsteps
 
         qmdp_param = {}
-        # qmdp_param['K'] = 3
+        qmdp_param['K'] = 3
         qmdp_param['obs_len'] = ob_space.shape[0]-ac_space.n
         qmdp_param['num_action'] = ac_space.n
         qmdp_param['num_state'] = 32
@@ -46,10 +46,10 @@ class QmdpPolicyDc(object):
             self.filter_net = FilterNet("filter",qmdp_param)
 
             #calculate action value q, and belief bnew
-            # s_hist, snew = self.filter_net.beliefupdate(obs, acts, ms, S)
-            s_hist, snew, w_O, Z_o, b_prime_a, b_f, b_old = self.filter_net.beliefupdate(obs, acts, ms, S)
+            s_hist, snew = self.filter_net.beliefupdate(obs, acts, ms, S)
+            # s_hist, snew, w_O, Z_o, b_prime_a, b_f = self.filter_net.beliefupdate(obs, acts, ms, S)
             #s_hist: [nstep,nenv,num_state]
-            Q = self.planner_net.VI(nbatch)
+            Q, _, _ = self.planner_net.VI(nbatch)
 
             # h5, snew = lstm(xs, ms, S, 'lstm1', nh=nlstm)
             # h5 = seq_to_batch(h5)
@@ -58,8 +58,11 @@ class QmdpPolicyDc(object):
             s_hist = seq_to_batch(s_hist) #[nbatch,num_state]
             q = self.planner_net.policy(Q,s_hist)
 
+            ############### baseline value function #####################################
+            #############################################################################
             self.pd, self.pi = self.pdtype.pdfromlatent(q)
             vf = fc(q, 'v', 1) #critic value function
+            #############################################################################
 
             #pi = fc(h5, 'pi', nact) #actor
             #vf = fc(h5, 'v', 1) #critic value function
@@ -71,14 +74,11 @@ class QmdpPolicyDc(object):
         self.initial_state = np.ones((nenv, num_state), dtype=np.float32)/num_state
 
         def step(ob, state, mask):
-            # return sess.run([a0, v0, snew, neglogp0], {X:ob, S:state, M:mask})
-            a,b,c,d,w_O_val,Z_o_val,b_prime_a_val,b_f_val,b_old_val = sess.run([a0, v0, snew, neglogp0, w_O, Z_o, b_prime_a, b_f, b_old], {X:ob, S:state, M:mask})
-            # print("w_O: ",w_O_val)
-            # print("Z_o: ",Z_o_val)
-            # print("b_prime_a_val: ",b_prime_a_val)
-            # print("b_f_val: ",b_f_val)
-            # print("b_old: ",b_old_val)
-            return a,b,c,d
+            return sess.run([a0, v0, snew, neglogp0], {X:ob, S:state, M:mask})
+            # a,b,c,d,q_val = sess.run([a0, v0, snew, neglogp0, q], {X:ob, S:state, M:mask})
+            # print("q: ",q_val)
+            # print("q shape: ",q_val.shape)
+            # return a,b,c,d
 
         def value(ob, state, mask):
             return sess.run(v0, {X:ob, S:state, M:mask})

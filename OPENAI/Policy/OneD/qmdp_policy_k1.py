@@ -2,15 +2,15 @@ import numpy as np
 import tensorflow as tf
 from baselines.a2c.utils import conv, fc, conv_to_fc, batch_to_seq, seq_to_batch, lstm, lnlstm
 from baselines.common.distributions import make_pdtype
-from Policy.qmdp_net import PlannerNet, FilterNet
+from Policy.OneD.qmdp_net_relu import PlannerNet, FilterNet
 
-class QmdpPolicy(object):
+class QmdpPolicyK1(object):
 
     def __init__(self, sess, ob_space, ac_space, nbatch, nsteps, reuse=False):
         nenv = nbatch // nsteps
 
         qmdp_param = {}
-        qmdp_param['K'] = 3
+        qmdp_param['K'] = 1
         qmdp_param['obs_len'] = ob_space.shape[0]-ac_space.n
         qmdp_param['num_action'] = ac_space.n
         qmdp_param['num_state'] = 32
@@ -29,6 +29,11 @@ class QmdpPolicy(object):
         S = tf.placeholder(tf.float32, [nenv, num_state]) #beliefs
 
         with tf.variable_scope("model", reuse=reuse):
+            # obs, acts = tf.split(X, [obs_len,num_action],1)
+            # obs = batch_to_seq(obs, nenv, nsteps)
+            # acts = batch_to_seq(acts, nenv, nsteps)
+            # ms = batch_to_seq(M, nenv, nsteps)
+            
             xs = batch_to_seq(X, nenv, nsteps)
             #xs originaly [nbatch,input_len]
             #reshape xs to [nenv,nsteps,input_len]
@@ -58,11 +63,8 @@ class QmdpPolicy(object):
             s_hist = seq_to_batch(s_hist) #[nbatch,num_state]
             q = self.planner_net.policy(Q,s_hist)
 
-            ############### baseline value function #####################################
-            #############################################################################
             self.pd, self.pi = self.pdtype.pdfromlatent(q)
             vf = fc(q, 'v', 1) #critic value function
-            #############################################################################
 
             #pi = fc(h5, 'pi', nact) #actor
             #vf = fc(h5, 'v', 1) #critic value function
